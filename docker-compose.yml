@@ -10,9 +10,9 @@ services:
     volumes:
       - postgres-volume:/var/lib/postgresql/data  
   web:
-    image: troeger/opensubmit-web:0.7.8
+    image: koehlerlukas/opensubmit-web
     environment:
-      OPENSUBMIT_DEBUG: "False"
+      OPENSUBMIT_DEBUG: 0
       OPENSUBMIT_SERVER_URL: http://localhost:8000
       OPENSUBMIT_SERVER_HOSTALIASES: web
       OPENSUBMIT_SERVER_MEDIAROOT: /data/media/ 
@@ -21,9 +21,10 @@ services:
       OPENSUBMIT_DATABASE_PASSWORD: opensubmit 
       OPENSUBMIT_DATABASE_HOST: db 
       OPENSUBMIT_DATABASE_ENGINE: postgresql 
-      OPENSUBMIT_LOGIN_DEMO: "True"
+      OPENSUBMIT_LOGIN_DEMO: 1
 
-    build: 
+
+    build:
       context: ./web/
     tty: true
     ports:
@@ -32,25 +33,15 @@ services:
       - db
     volumes:
       - data-volume:/data
-  exec1:
-    image: troeger/opensubmit-exec:0.7.8
+  exec:
+    image: koehlerlukas/opensubmit-exec
     environment:
       OPENSUBMIT_SERVER_HOST: http://web
-    build: 
+    build:
       context: ./executor/
     tty: true
     depends_on:
       - web
-  exec2:
-    image: troeger/opensubmit-exec
-    environment:
-      OPENSUBMIT_SERVER_HOST: http://web
-    build: 
-      context: ./executor/
-    tty: true
-    depends_on:
-      - web
-
 volumes:
   data-volume:
   postgres-volume:

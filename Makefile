@@ -62,11 +62,18 @@ bumpversion:
 
 # Re-create docker images and upload into registry
 docker-push: build
-	docker login --username=troeger
-	docker build -t troeger/opensubmit-web:$(VERSION) web
-	docker push troeger/opensubmit-web:$(VERSION)
-	docker build -t troeger/opensubmit-exec:$(VERSION) executor
-	docker push troeger/opensubmit-exec:$(VERSION)
+	docker login --username=koehlerlukas
+	docker build -t koehlerlukas/opensubmit-web:$(VERSION) web
+	docker push koehlerlukas/opensubmit-web:$(VERSION)
+	docker build -t koehlerlukas/opensubmit-exec:$(VERSION) executor
+	docker push koehlerlukas/opensubmit-exec:$(VERSION)
+
+# Re-create docker images and upload into openshift
+docker-pushopenshift: build
+	docker build -t 172.30.1.1:5000/test/web:$(VERSION) web
+	docker push 172.30.1.1:5000/test/web:$(VERSION)
+	docker build -t 172.30.1.1:5000/test/exec:$(VERSION) executor
+	docker push 172.30.1.1:5000/test/exec:$(VERSION)
 
 # Upload built packages to PyPI.
 # Assumes valid credentials in ~/.pypirc
@@ -84,8 +91,8 @@ clean:
 	rm -fr  executor/*egg-info
 	rm -f  ./.coverage
 	rm -rf ./htmlcov
-	find . -name "*.bak" -delete
-	find . -name "__pycache__" -delete
+	find . -name "__pycache__" -prune -exec rm -r "{}" \;
+	find . -name "*.bak" -prune -exec rm -r "{}" \;
 
 # Clean HTML version of the documentation
 clean-docs:

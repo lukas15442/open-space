@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: ImageStream
+metadata:
+  creationTimestamp: null
+  labels:
+    io.kompose.service: exec
+  name: exec
+spec:
+  tags:
+  - annotations: null
+    from:
+      kind: DockerImage
+      name: koehlerlukas/opensubmit-exec
+    generation: null
+    importPolicy: {}
+    name: latest
+status:
+  dockerImageRepository: ""

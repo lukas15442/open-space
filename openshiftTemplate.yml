@@ -1,0 +1,242 @@
+apiVersion: v1
+kind: Template
+metadata:
+  name: openspace-template
+  annotations:
+    openshift.io/display-name: "OpenSpace" 
+    description: "OpenSpace for PAD1 and PAD2"
+    iconClass: "icon-hdalogo"
+    tags: "hda,hdapad" 
+objects:
+
+- apiVersion: v1
+  kind: PersistentVolumeClaim
+  metadata:
+    name: postgres-volume
+  spec:
+    accessModes:
+    - ReadWriteOnce
+    resources:
+      requests:
+        storage: ${POSTGRES_SIZE}Gi
+  status: {}
+
+- apiVersion: v1
+  kind: PersistentVolumeClaim
+  metadata:
+    name: data-volume
+  spec:
+    accessModes:
+    - ReadWriteOnce
+    resources:
+      requests:
+        storage: ${WEB_VOLUME_SIZE}Gi
+  status: {}
+
+- apiVersion: v1
+  kind: ImageStream
+  metadata:
+    name: exec
+  spec:
+    tags:
+    - annotations: null
+      from:
+        kind: DockerImage
+        name: koehlerlukas/opensubmit-exec:${DOCKER_EXEC_VERSION}
+      name: ${DOCKER_EXEC_VERSION}
+
+- apiVersion: v1
+  kind: ImageStream
+  metadata:
+    name: web
+  spec:
+    tags:
+    - annotations: null
+      from:
+        kind: DockerImage
+        name: koehlerlukas/opensubmit-web:${DOCKER_WEB_VERSION}
+      name: ${DOCKER_WEB_VERSION}
+
+- apiVersion: v1
+  kind: DeploymentConfig
+  metadata:
+    name: db
+  spec:
+    replicas: 1
+    selector:
+      app: db
+      deploymentconfig: db
+    template:
+      metadata:
+        labels:
+          app: db
+          deploymentconfig: db
+      spec:
+        containers:
+          - env:
+              - name: POSTGRESQL_USER
+                value: opensubmit
+              - name: POSTGRESQL_PASSWORD
+                value: opensubmit
+              - name: POSTGRESQL_DATABASE
+                value: opensubmit
+            image: >-
+              docker.io/centos/postgresql-96-centos7@sha256:63cd5c029def2047a9c8c35f578bb627e2c0eda6d268d3a815d685aa2c127d48
+            name: db
+            ports:
+              - containerPort: 5432
+                protocol: TCP
+            volumeMounts:
+              - mountPath: /var/lib/pgsql/data
+                name: postgres-volume
+        volumes:
+          - name: postgres-volume
+            persistentVolumeClaim:
+              claimName: postgres-volume
+    test: false
+
+- apiVersion: v1
+  kind: DeploymentConfig
+  metadata:
+    name: web
+  spec:
+    replicas: 1
+    selector:
+      app: web
+      deploymentconfig: web
+    template:
+      metadata:
+        labels:
+          app: web
+          deploymentconfig: web
+      spec:
+        containers:
+        - env:
+          - name: OPENSUBMIT_DATABASE_ENGINE
+            value: postgresql
+          - name: OPENSUBMIT_DATABASE_HOST
+            value: db
+          - name: OPENSUBMIT_DATABASE_NAME
+            value: opensubmit
+          - name: OPENSUBMIT_DATABASE_PASSWORD
+            value: opensubmit
+          - name: OPENSUBMIT_DATABASE_USER
+            value: opensubmit
+          - name: OPENSUBMIT_DEBUG
+            value: "0"
+          - name: OPENSUBMIT_LOGIN_DEMO
+            value: "1"
+          - name: OPENSUBMIT_SERVER_HOSTALIASES
+            value: web
+          - name: OPENSUBMIT_SERVER_MEDIAROOT
+            value: /data/media/
+          - name: OPENSUBMIT_SERVER_URL
+            value: http://localhost:8000
+          - name: OPENSHIFT_APP_DNS
+            value: '*'
+          image: ' '
+          name: web
+          ports:
+          volumeMounts:
+          - mountPath: /data
+            name: data-volume
+        volumes:
+        - name: data-volume
+          persistentVolumeClaim:
+            claimName: data-volume
+    test: false
+    triggers:
+    - type: ConfigChange
+    - imageChangeParams:
+        automatic: true
+        containerNames:
+        - web
+        from:
+          kind: ImageStreamTag
+          name: web:${DOCKER_WEB_VERSION}
+      type: ImageChange
+
+- apiVersion: v1
+  kind: DeploymentConfig
+  metadata:
+    name: exec
+  spec:
+    replicas: 0
+    selector:
+      app: exec
+      deploymentconfig: exec
+    template:
+      metadata:
+        labels:
+          app: exec
+          deploymentconfig: exec
+      spec:
+        containers:
+        - env:
+          - name: OPENSUBMIT_SERVER_HOST
+            value: http://web:8000
+          image: ' '
+          name: exec
+    test: false
+    triggers:
+    - type: ConfigChange
+    - imageChangeParams:
+        automatic: true
+        containerNames:
+        - exec
+        from:
+          kind: ImageStreamTag
+          name: exec:${DOCKER_EXEC_VERSION}
+      type: ImageChange
+
+- apiVersion: v1
+  kind: Service
+  metadata:
+    labels:
+      app: db
+    name: db
+  spec:
+    ports:
+      - name: 5432-tcp
+        port: 5432
+        protocol: TCP
+        targetPort: 5432
+    selector:
+      deploymentconfig: db
+
+- apiVersion: v1
+  kind: Service
+  metadata:
+    labels:
+      app: web
+    name: web
+  spec:
+    ports:
+    - name: "8000"
+      port: 8000
+      targetPort: 80
+    selector:
+      app: web
+
+parameters:
+- description: Postgres Volume Size in GB
+  from: '[0-9]{4}'
+  generate: expression
+  value: '10'
+  name: POSTGRES_SIZE
+
+- description: Web Volume Size in GB
+  from: '[0-9]{4}'
+  generate: expression
+  value: '10'
+  name: WEB_VOLUME_SIZE
+
+- description: open-space web version
+  generate: expression
+  value: '0.7.8'
+  name: DOCKER_WEB_VERSION
+
+- description: open-space exec version
+  generate: expression
+  value: '0.7.8'
+  name: DOCKER_EXEC_VERSION

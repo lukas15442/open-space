@@ -2,3 +2,4 @@ psutil
 twisted
 py-cpuinfo
 pexpect
+python-jenkins

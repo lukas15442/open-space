@@ -21,4 +21,9 @@ echo "Web server started."
 # Perform config test, triggers also registration
 opensubmit-exec configtest
 
-cron && tail -f /var/log/cron.log
+echo "starting exec"
+while [ 1 ]
+do
+   opensubmit-exec run >> /var/log/opensubmit 2>&1
+   sleep 10
+done

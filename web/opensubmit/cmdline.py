@@ -33,7 +33,7 @@ DEFAULT_CONFIG = '''
 
 [general]
 DEBUG: {debug}
-DEMO: {login_demo}
+DEMO: False
 
 [server]
 HOST: {server_host}
@@ -65,7 +65,7 @@ ADMIN_EMAIL: {admin_email}
 ADMIN_ADDRESS: {admin_address}
 
 [login]
-LOGIN_DESCRIPTION: {login_openid_title}
+LOGIN_DESCRIPTION: Hochschule Darmstadt
 OPENID_PROVIDER: {login_openid_provider}
 LOGIN_TWITTER_OAUTH_KEY: {login_twitter_oauth_key}
 LOGIN_TWITTER_OAUTH_SECRET: {login_twitter_oauth_secret}
@@ -74,7 +74,7 @@ LOGIN_GOOGLE_OAUTH_SECRET: {login_google_oauth_secret}
 LOGIN_GITHUB_OAUTH_KEY: {login_github_oauth_key}
 LOGIN_GITHUB_OAUTH_SECRET: {login_github_oauth_secret}
 LOGIN_SHIB_DESCRIPTION: {login_shib_title}
-LOGIN_DEMO: {login_demo}
+LOGIN_DEMO: False
 '''
 
 

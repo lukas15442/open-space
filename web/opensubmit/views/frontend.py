@@ -60,7 +60,7 @@ class LogoutView(LoginRequiredMixin, RedirectView):
     def get(self, request):
         auth.logout(request)
         return redirect(
-            'https://secure-sso-opensubmit.192.168.99.100.nip.io/auth/realms/master/protocol/openid-connect/logout?redirect_uri=http://localhost:8000')
+            'https://secure-sso-opensubmit.192.168.99.100.nip.io/auth/realms/master/protocol/openid-connect/logout?redirect_uri=http://web-opensubmit.192.168.99.100.nip.io')
 
 
 class SettingsView(LoginRequiredMixin, UpdateView):

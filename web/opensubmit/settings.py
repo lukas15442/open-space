@@ -325,8 +325,8 @@ if LOGIN_OPENID:
     OIDC_OP_AUTHORIZATION_ENDPOINT = 'https://secure-sso-opensubmit.192.168.99.100.nip.io/auth/realms/master/protocol/openid-connect/auth'
     OIDC_OP_TOKEN_ENDPOINT = 'https://secure-sso-opensubmit.192.168.99.100.nip.io/auth/realms/master/protocol/openid-connect/token'
     OIDC_OP_USER_ENDPOINT = 'https://secure-sso-opensubmit.192.168.99.100.nip.io/auth/realms/master/protocol/openid-connect/userinfo'
-    LOGIN_REDIRECT_URL = 'http://localhost:8000'
-    LOGOUT_REDIRECT_URL = 'http://localhost:8000'
+    LOGIN_REDIRECT_URL = 'http://web-opensubmit.192.168.99.100.nip.io'
+    LOGOUT_REDIRECT_URL = 'http://web-opensubmit.192.168.99.100.nip.io'
     OIDC_VERIFY_SSL = False
     OIDC_RP_SIGN_ALGO = 'RS256'
     OIDC_OP_JWKS_ENDPOINT = 'http://sso-opensubmit.192.168.99.100.nip.io/auth/realms/master/protocol/openid-connect/certs'

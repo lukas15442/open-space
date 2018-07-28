@@ -31,7 +31,7 @@
             {% endif %}
             {% if login_openid %}
             <div class="col-md-3">
-                <a href="{% url 'social:begin' 'openid' %}?next={{ next }}" class="btn-auth btn-openid"><b>{{ login_description }}</b></a>
+                <a href="{% url 'oidc_authentication_init' %}" class="btn-auth btn-openid"><b>{{ login_description }}</b></a>
             </div>
             {% endif %}
             {% if login_shib %}

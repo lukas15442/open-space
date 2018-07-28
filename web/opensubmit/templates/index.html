@@ -17,7 +17,7 @@
 
 {% block navigation_home %}hidden{% endblock %}
 {% block navigation_archive %}hidden{% endblock %}
-{% block navigation_settings %}hidden{% endblock %}
+{% block navigation_settings %}hiddelogin_descriptionn{% endblock %}
 {% block navigation_courses %}hidden{% endblock %}
 {% block navigation_logout %}hidden{% endblock %}
 
@@ -29,8 +29,6 @@
             <small>Assignment Management and Submission System</small>
         </h1>
     </div>
-
-    <a href="{% url 'oidc_authentication_init' %}">Login</a>
 
     {% include "login_buttons.inc" %}
 

@@ -318,7 +318,8 @@ if LOGIN_GITHUB:
     SOCIAL_AUTH_GITHUB_SECRET = config.get("login", "LOGIN_GITHUB_OAUTH_SECRET")
 
 if LOGIN_OPENID:
-    AUTHENTICATION_BACKENDS += ('mozilla_django_oidc.auth.OIDCAuthenticationBackend',)
+    LOGIN_DESCRIPTION = config.get('login', 'LOGIN_DESCRIPTION')
+    AUTHENTICATION_BACKENDS += ('opensubmit.social.open_idV2.MyOIDCAB',)
     OIDC_RP_CLIENT_ID = 'opensubmit'
     OIDC_RP_CLIENT_SECRET = '53237a9c-e154-4543-970f-0af787711317'
     OIDC_OP_AUTHORIZATION_ENDPOINT = 'https://secure-sso-opensubmit.192.168.99.100.nip.io/auth/realms/master/protocol/openid-connect/auth'

@@ -1,0 +1,8 @@
+cp -r "$(find $folder -maxdepth 1 -type d -not -path $folder/__pycache__ -not -path $folder)"/* ./
+ls -la
+
+g++ -O0 -g -Wall -Wextra -o binary *.cpp
+ls -la
+
+cppcheck --enable=all --check-config --suppress=missingIncludeSystem --inconclusive --xml --xml-version=2 *.cpp 2> cppcheck-result.xml
+ls -la

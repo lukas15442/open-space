@@ -1,0 +1,3 @@
+ToDo.
+
+Am besten erstmal alles ohne Autmatisierung bauen...

@@ -75,6 +75,10 @@ docker-pushopenshift: build
 	docker build -t 172.30.1.1:5000/opensubmit/exec:$(VERSION) executor
 	docker push 172.30.1.1:5000/opensubmit/exec:$(VERSION)
 
+docker-pushjenkinsopenshift:
+	docker build -t 172.30.1.1:5000/opensubmit/jenkins:latest jenkins/docker
+	docker push 172.30.1.1:5000/opensubmit/jenkins:latest
+
 # Upload built packages to PyPI.
 # Assumes valid credentials in ~/.pypirc
 pypi-push: check-venv build

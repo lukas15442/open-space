@@ -20,7 +20,12 @@ server = Jenkins(URL, USERNAME, PASSWORD)
 queue_number = server.build_job(JOB, {'folder': '/opensubmit/' + FOLDER.split('/')[2]})
 queue_item = server.get_queue_item(queue_number)
 
-while 'executable' not in queue_item:
+while 'executable' not in queue_item or not queue_item['executable']:
+    print('Waiting for queue item . . .')
+    time.sleep(2)
+    queue_item = server.get_queue_item(queue_number)
+
+while 'number' not in queue_item['executable'] or not queue_item['executable']['number']:
     print('Waiting for queue item . . .')
     time.sleep(2)
     queue_item = server.get_queue_item(queue_number)

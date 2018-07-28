@@ -69,7 +69,7 @@ config = Config((
     ('/etc/opensubmit/settings.ini', True),  # Linux production system
     (os.path.dirname(__file__) + '/settings_dev.ini', False),  # Linux / Mac development system
     (os.path.expandvars('$APPDATA') + 'opensubmit/settings.ini', False),  # Windows development system
-    ))
+))
 
 ################################################################################################################
 ################################################################################################################
@@ -107,7 +107,6 @@ else:
 # Determine some settings based on the MAIN_URL
 LOGIN_URL = MAIN_URL
 LOGIN_ERROR_URL = MAIN_URL
-LOGIN_REDIRECT_URL = MAIN_URL + '/dashboard/'
 
 # Local file system storage for uploads.
 # Please note that MEDIA_URL is intentionally not set, since all media
@@ -135,7 +134,7 @@ ALLOWED_HOSTS = host_list
 if config.is_production:
     # Root folder for static files
     STATIC_ROOT = SCRIPT_ROOT + '/static-production/'
-    STATICFILES_DIRS = (SCRIPT_ROOT + '/static/', )
+    STATICFILES_DIRS = (SCRIPT_ROOT + '/static/',)
     # Absolute URL for static files, directly served by Apache on production systems
     STATIC_URL = MAIN_URL + '/static/'
     EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
@@ -229,8 +228,9 @@ INSTALLED_APPS = (
     'grappelli.dashboard',
     'grappelli',
     'django.contrib.admin',
-#    'django.contrib.admin.apps.SimpleAdminConfig',
+    #    'django.contrib.admin.apps.SimpleAdminConfig',
     'opensubmit.app.OpenSubmitConfig',
+    'mozilla_django_oidc',
 )
 
 LOG_FILE = config.get('server', 'LOG_FILE')
@@ -300,9 +300,7 @@ LOGIN_TWITTER = (config.get("login", "LOGIN_TWITTER_OAUTH_KEY").strip() != '' an
 LOGIN_OPENID = (config.get('login', 'OPENID_PROVIDER').strip() != '')
 LOGIN_SHIB = (config.get('login', 'LOGIN_SHIB_DESCRIPTION').strip() != '')
 
-AUTHENTICATION_BACKENDS = (
-    'django.contrib.auth.backends.ModelBackend',
-)
+AUTHENTICATION_BACKENDS = ()
 
 if LOGIN_GOOGLE:
     AUTHENTICATION_BACKENDS += ('social_core.backends.google.GoogleOAuth2',)
@@ -320,15 +318,22 @@ if LOGIN_GITHUB:
     SOCIAL_AUTH_GITHUB_SECRET = config.get("login", "LOGIN_GITHUB_OAUTH_SECRET")
 
 if LOGIN_OPENID:
-    AUTHENTICATION_BACKENDS += ('opensubmit.social.open_id.OpenIdAuth',)
-    LOGIN_DESCRIPTION = config.get('login', 'LOGIN_DESCRIPTION')
-    OPENID_PROVIDER = config.get('login', 'OPENID_PROVIDER')
+    AUTHENTICATION_BACKENDS += ('mozilla_django_oidc.auth.OIDCAuthenticationBackend',)
+    OIDC_RP_CLIENT_ID = 'opensubmit'
+    OIDC_RP_CLIENT_SECRET = '53237a9c-e154-4543-970f-0af787711317'
+    OIDC_OP_AUTHORIZATION_ENDPOINT = 'https://secure-sso-opensubmit.192.168.99.100.nip.io/auth/realms/master/protocol/openid-connect/auth'
+    OIDC_OP_TOKEN_ENDPOINT = 'https://secure-sso-opensubmit.192.168.99.100.nip.io/auth/realms/master/protocol/openid-connect/token'
+    OIDC_OP_USER_ENDPOINT = 'https://secure-sso-opensubmit.192.168.99.100.nip.io/auth/realms/master/protocol/openid-connect/userinfo'
+    LOGIN_REDIRECT_URL = 'http://localhost:8000'
+    LOGOUT_REDIRECT_URL = 'http://localhost:8000'
+    OIDC_VERIFY_SSL = False
+    OIDC_RP_SIGN_ALGO = 'RS256'
+    OIDC_OP_JWKS_ENDPOINT = 'http://sso-opensubmit.192.168.99.100.nip.io/auth/realms/master/protocol/openid-connect/certs'
+    OIDC_OP_LOGOUT_URL_METHOD = 'http://sso-opensubmit.192.168.99.100.nip.io/auth/realms/master/protocol/openid-connect/logout'
 
 if LOGIN_SHIB:
     AUTHENTICATION_BACKENDS += ('opensubmit.social.apache.ModShibAuth',)
     LOGIN_SHIB_DESCRIPTION = config.get('login', 'LOGIN_SHIB_DESCRIPTION')
-
-AUTHENTICATION_BACKENDS += ('opensubmit.social.lti.LtiAuth',)
 
 if DEMO is True:
     AUTHENTICATION_BACKENDS += ('opensubmit.social.passthrough.PassThroughAuth',)
@@ -350,7 +355,7 @@ SOCIAL_AUTH_PIPELINE = (
 )
 
 JOB_EXECUTOR_SECRET = config.get("executor", "SHARED_SECRET")
-assert(JOB_EXECUTOR_SECRET is not "")
+assert (JOB_EXECUTOR_SECRET is not "")
 
 GRAPPELLI_ADMIN_TITLE = "OpenSubmit"
 GRAPPELLI_SWITCH_USER = True

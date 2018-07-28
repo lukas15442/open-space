@@ -1,19 +1,18 @@
-from datetime import datetime
 import json
 import os
+from datetime import datetime
 
-from django.views.generic import TemplateView, RedirectView, ListView, DetailView
-from django.views.generic.edit import UpdateView
-from django.shortcuts import redirect
 from django.contrib import auth, messages
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.core.exceptions import PermissionDenied
+from django.core.urlresolvers import reverse
 from django.core.urlresolvers import reverse_lazy
 from django.forms.models import modelform_factory, model_to_dict
-from django.core.exceptions import PermissionDenied
 from django.shortcuts import get_object_or_404, render
+from django.shortcuts import redirect
 from django.utils.safestring import mark_safe
-from django.core.urlresolvers import reverse
-
+from django.views.generic import TemplateView, RedirectView, ListView, DetailView
+from django.views.generic.edit import UpdateView
 from opensubmit import settings
 from opensubmit.forms import SettingsForm, getSubmissionForm, SubmissionFileUpdateForm
 from opensubmit.models import UserProfile, Submission, TestMachine, Course, Assignment, SubmissionFile
@@ -30,6 +29,7 @@ class IndexView(TemplateView):
         else:
             return super(IndexView, self).get(request)
 
+
 class ImpressView(TemplateView):
     template_name = 'impress.html'
 
@@ -38,6 +38,7 @@ class ImpressView(TemplateView):
             return redirect(settings.IMPRESS_PAGE)
         else:
             return super(ImpressView, self).get(request)
+
 
 class PrivacyView(TemplateView):
     template_name = 'privacy.html'
@@ -58,7 +59,8 @@ class LogoutView(LoginRequiredMixin, RedirectView):
 
     def get(self, request):
         auth.logout(request)
-        return super().get(request)
+        return redirect(
+            'https://secure-sso-opensubmit.192.168.99.100.nip.io/auth/realms/master/protocol/openid-connect/logout?redirect_uri=http://localhost:8000')
 
 
 class SettingsView(LoginRequiredMixin, UpdateView):
@@ -116,7 +118,8 @@ class ArchiveView(LoginRequiredMixin, ListView):
     template_name = 'archive.html'
 
     def get_queryset(self):
-        archived = self.request.user.authored.all().exclude(assignment__course__active=False).filter(state=Submission.WITHDRAWN).order_by('-created')
+        archived = self.request.user.authored.all().exclude(assignment__course__active=False).filter(
+            state=Submission.WITHDRAWN).order_by('-created')
         return archived
 
 
@@ -356,4 +359,3 @@ class DescriptionFileView(LoginRequiredMixin, BinaryDownloadMixin, DetailView):
         self.f = ass.description
         self.fname = self.f.name[self.f.name.rfind('/') + 1:]
         return ass
-

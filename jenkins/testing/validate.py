@@ -8,7 +8,7 @@ from jenkins import Jenkins
 def validate(job):
     URL = 'https://jenkins-opensubmit.192.168.99.100.nip.io'
     USERNAME = 'developer-admin'
-    PASSWORD = '69fcd7c0a6fdf5dad5b4f4e5292c8baf'
+    PASSWORD = 'e9dd8ba9b4287266e28594cb6353a65d'
     JOB = 'Test'
     FOLDER = job.working_dir
 
@@ -22,7 +22,12 @@ def validate(job):
     queue_number = server.build_job(JOB, {'folder': '/opensubmit/' + FOLDER.split('/')[2]})
     queue_item = server.get_queue_item(queue_number)
 
-    while 'executable' not in queue_item:
+    while 'executable' not in queue_item or not queue_item['executable']:
+        print('Waiting for queue item . . .')
+        time.sleep(2)
+        queue_item = server.get_queue_item(queue_number)
+
+    while 'number' not in queue_item['executable'] or not queue_item['executable']['number']:
         print('Waiting for queue item . . .')
         time.sleep(2)
         queue_item = server.get_queue_item(queue_number)

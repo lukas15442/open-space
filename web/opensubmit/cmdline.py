@@ -9,14 +9,14 @@
     any of the install dependencies.
 '''
 
+import argparse
+import grp
 import os
 import pwd
-import grp
-import urllib.request
-import urllib.parse
-import urllib.error
 import sys
-import argparse
+import urllib.error
+import urllib.parse
+import urllib.request
 from base64 import b64encode
 from configparser import RawConfigParser
 
@@ -33,7 +33,7 @@ DEFAULT_CONFIG = '''
 
 [general]
 DEBUG: {debug}
-DEMO: False
+DEMO: {login_demo}
 
 [server]
 HOST: {server_host}
@@ -65,16 +65,29 @@ ADMIN_EMAIL: {admin_email}
 ADMIN_ADDRESS: {admin_address}
 
 [login]
-LOGIN_DESCRIPTION: Hochschule Darmstadt
+LOGIN_DESCRIPTION: {login_openid_title}
+
 OPENID_PROVIDER: {login_openid_provider}
+
 LOGIN_TWITTER_OAUTH_KEY: {login_twitter_oauth_key}
 LOGIN_TWITTER_OAUTH_SECRET: {login_twitter_oauth_secret}
+
 LOGIN_GOOGLE_OAUTH_KEY: {login_google_oauth_key}
 LOGIN_GOOGLE_OAUTH_SECRET: {login_google_oauth_secret}
+
 LOGIN_GITHUB_OAUTH_KEY: {login_github_oauth_key}
 LOGIN_GITHUB_OAUTH_SECRET: {login_github_oauth_secret}
+
 LOGIN_SHIB_DESCRIPTION: {login_shib_title}
-LOGIN_DEMO: False
+
+LOGIN_DEMO: {login_demo}
+
+LOGIN_OPENSHIFT_SSO_PROVIDER: {login_openshift_sso_provider}
+LOGIN_OPENSHIFT_SSO_DESCRIPTION: {login_openshift_sso_title}
+LOGIN_OPENSHIFT_SSO_OIDC_VERIFY_SSL: {login_openshift_sso_oidc_verify_ssl}
+LOGIN_OPENSHIFT_SSO_OIDC_RP_SIGN_ALGO: {login_openshift_sso_oidc_rp_sign_algo}
+LOGIN_OPENSHIFT_SSO_OIDC_RP_CLIENT_ID: {login_openshift_sso_oidc_rp_client_id}
+LOGIN_OPENSHIFT_SSO_OIDC_RP_CLIENT_SECRET: {login_openshift_sso_oidc_rp_client_secret}
 '''
 
 
@@ -139,7 +152,7 @@ def check_path(file_path):
     directory = os.path.dirname(file_path)
     if directory != '':
         if not os.path.exists(directory):
-            os.makedirs(directory, 0o775)   # rwxrwxr-x
+            os.makedirs(directory, 0o775)  # rwxrwxr-x
 
 
 def check_file(filepath):
@@ -161,7 +174,8 @@ def check_file(filepath):
         os.chown(filepath, uid, gid)
         os.chmod(filepath, 0o660)  # rw-rw---
     except:
-        print("WARNING: Could not adjust file system permissions for %s. Make sure your web server can write into it." % filepath)
+        print(
+            "WARNING: Could not adjust file system permissions for %s. Make sure your web server can write into it." % filepath)
 
 
 def check_web_config_consistency(config):
@@ -204,7 +218,8 @@ def check_web_config_consistency(config):
     if config.get('database', 'DATABASE_ENGINE') == 'sqlite3':
         name = config.get('database', 'DATABASE_NAME')
         if not os.path.isabs(name):
-            print("ERROR: Your SQLite database name must be an absolute path. The web server must have directory access permissions for this path.")
+            print(
+                "ERROR: Your SQLite database name must be an absolute path. The web server must have directory access permissions for this path.")
             return False
         check_file(config.get('database', 'DATABASE_NAME'))
     # everything ok
@@ -225,7 +240,8 @@ def check_web_config(config_fname):
         config.readfp(open(config_fname))
         return config
     except IOError:
-        print("ERROR: Seems like the config file does not exist. Please call 'opensubmit-web configcreate' first, or specify a location with the '-c' option.")
+        print(
+            "ERROR: Seems like the config file does not exist. Please call 'opensubmit-web configcreate' first, or specify a location with the '-c' option.")
         return None
 
 
@@ -234,7 +250,7 @@ def check_web_db():
         Everything related to database checks and updates.
     '''
     print("Testing for neccessary database migrations...")
-    django_admin(["migrate"])             # apply schema migrations
+    django_admin(["migrate"])  # apply schema migrations
     print("Checking the OpenSubmit permission system...")
     # configure permission system, of needed
     django_admin(["fixperms"])
@@ -265,7 +281,7 @@ def configtest(config_fname):
     print("Inspecting OpenSubmit configuration ...")
     config = check_web_config(config_fname)
     if not config:
-        return          # Let them first fix the config file before trying a DB access
+        return  # Let them first fix the config file before trying a DB access
     if not check_web_config_consistency(config):
         return
     if not check_web_db():
@@ -280,43 +296,115 @@ def console_script(fsroot=''):
         The argument allows the test suite to override the root of all paths used in here.
     '''
 
-    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter, description='Administration for the OpenSubmit web application.')
+    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+                                     description='Administration for the OpenSubmit web application.')
     parser.add_argument('-c', '--config', default='/etc/opensubmit/settings.ini', help='OpenSubmit configuration file.')
     subparsers = parser.add_subparsers(dest='command', help='Supported administrative actions.')
-    parser_configcreate = subparsers.add_parser('configcreate', help='Create initial config files for the OpenSubmit web server.')
-    parser_configcreate.add_argument('--debug', default=bool(os.environ.get('OPENSUBMIT_DEBUG', 'False')), action='store_true', help='Enable debug mode, not for production systems.')
-    parser_configcreate.add_argument('--server_url', default=os.environ.get('OPENSUBMIT_SERVER_URL', 'http://localhost:8000'), help='The main URL of the OpenSubmit installation, including sub-directories.')
-    parser_configcreate.add_argument('--server_mediaroot', default=os.environ.get('OPENSUBMIT_SERVER_MEDIAROOT', '/tmp/'), help='Storage path for uploadeded files.')
-    parser_configcreate.add_argument('--server_hostaliases', default=os.environ.get('OPENSUBMIT_SERVER_HOSTALIASES', '127.0.0.1'), help='Comma-separated list of alternative host names for the web server.')
-    parser_configcreate.add_argument('--server_logfile', default=os.environ.get('OPENSUBMIT_SERVER_LOGFILE', '/tmp/opensubmit.log'), help='Log file for the OpenSubmit application.')
-    parser_configcreate.add_argument('--server_timezone', default=os.environ.get('OPENSUBMIT_SERVER_TIMEZONE', 'Europe/Berlin'), help='Time zone for all dates and deadlines.')
-    parser_configcreate.add_argument('--database_name', default=os.environ.get('OPENSUBMIT_DATABASE_NAME', '/tmp/database.sqlite'), help='Name of the database (file).'),
-    parser_configcreate.add_argument('--database_engine', default=os.environ.get('OPENSUBMIT_DATABASE_ENGINE', 'sqlite3'), choices=['postgresql', 'mysql', 'sqlite3', 'oracle'])
-    parser_configcreate.add_argument('--database_user', default=os.environ.get('OPENSUBMIT_DATABASE_USER', ''), help='The user name for accessing the database. Not needed for SQLite.')
-    parser_configcreate.add_argument('--database_password', default=os.environ.get('OPENSUBMIT_DATABASE_PASSWORD', ''), help='The user password for accessing the database. Not needed for SQLite.')
-    parser_configcreate.add_argument('--database_host', default=os.environ.get('OPENSUBMIT_DATABASE_HOST', ''), help='The host name for accessing the database. Not needed for SQLite. Default is localhost.')
-    parser_configcreate.add_argument('--database_port', default=os.environ.get('OPENSUBMIT_DATABASE_PORT', ''), help='The port number for accessing the database. Not needed for SQLite.')
-    parser_configcreate.add_argument('--login_google_oauth_key', default=os.environ.get('OPENSUBMIT_LOGIN_GOOGLE_OAUTH_KEY', ''), help='Google OAuth client key.')
-    parser_configcreate.add_argument('--login_google_oauth_secret', default=os.environ.get('OPENSUBMIT_LOGIN_GOOGLE_OAUTH_SECRET', ''), help='Google OAuth client secret.')
-    parser_configcreate.add_argument('--login_twitter_oauth_key', default=os.environ.get('OPENSUBMIT_LOGIN_TWITTER_OAUTH_KEY', ''), help='Twitter OAuth client key.')
-    parser_configcreate.add_argument('--login_twitter_oauth_secret', default=os.environ.get('OPENSUBMIT_LOGIN_TWITTER_OAUTH_SECRET', ''), help='Twitter OAuth client secret.')
-    parser_configcreate.add_argument('--login_github_oauth_key', default=os.environ.get('OPENSUBMIT_LOGIN_GITHUB_OAUTH_KEY', ''), help='GitHub OAuth client key.')
-    parser_configcreate.add_argument('--login_github_oauth_secret', default=os.environ.get('OPENSUBMIT_LOGIN_GITHUB_OAUTH_SECRET', ''), help='GitHUb OAuth client secret.')
-    parser_configcreate.add_argument('--login_openid_title', default=os.environ.get('OPENSUBMIT_LOGIN_OPENID_TITLE', 'StackExchange'), help='Title of the OpenID login button.')
-    parser_configcreate.add_argument('--login_openid_provider', default=os.environ.get('OPENSUBMIT_LOGIN_OPENID_PROVIDER', 'https://openid.stackexchange.com'), help='URL of the OpenID provider.')
-    parser_configcreate.add_argument('--login_shib_title', default=os.environ.get('OPENSUBMIT_LOGIN_SHIB_TITLE', ''), help='Title of the Shibboleth login button.')
-    parser_configcreate.add_argument('--login_demo', default=bool(os.environ.get('OPENSUBMIT_LOGIN_DEMO', 'False')), action='store_true', help='Title of the Shibboleth login button.')
-    parser_configcreate.add_argument('--admin_name', default=os.environ.get('OPENSUBMIT_ADMIN_NAME', 'OpenSubmit Administrator'), help='Name of the administrator, shown in privacy policy, impress and backend.')
-    parser_configcreate.add_argument('--admin_email', default=os.environ.get('OPENSUBMIT_ADMIN_EMAIL', 'root@localhost'), help='eMail of the administrator, shown in privacy policy, impress and backend.')
-    parser_configcreate.add_argument('--admin_address', default=os.environ.get('OPENSUBMIT_ADMIN_ADDRESS', '(address available by eMail)'), help='Address of the administrator, shown in privacy policy and impress.')
-    parser_configcreate.add_argument('--admin_impress_page', default=os.environ.get('OPENSUBMIT_IMPRESS_PAGE', ''), help='Link to alternative impress page.')
-    parser_configcreate.add_argument('--admin_privacy_page', default=os.environ.get('OPENSUBMIT_PRIVACY_PAGE', ''), help='Link to alternative privacy policy page.')
+    parser_configcreate = subparsers.add_parser('configcreate',
+                                                help='Create initial config files for the OpenSubmit web server.')
+    parser_configcreate.add_argument('--debug', default=os.environ.get('OPENSUBMIT_DEBUG', 'False'),
+                                     action='store_true', help='Enable debug mode, not for production systems.')
+    parser_configcreate.add_argument('--server_url',
+                                     default=os.environ.get('OPENSUBMIT_SERVER_URL', 'http://localhost:8000'),
+                                     help='The main URL of the OpenSubmit installation, including sub-directories.')
+    parser_configcreate.add_argument('--server_mediaroot',
+                                     default=os.environ.get('OPENSUBMIT_SERVER_MEDIAROOT', '/tmp/'),
+                                     help='Storage path for uploadeded files.')
+    parser_configcreate.add_argument('--server_hostaliases',
+                                     default=os.environ.get('OPENSUBMIT_SERVER_HOSTALIASES', '127.0.0.1'),
+                                     help='Comma-separated list of alternative host names for the web server.')
+    parser_configcreate.add_argument('--server_logfile',
+                                     default=os.environ.get('OPENSUBMIT_SERVER_LOGFILE', '/tmp/opensubmit.log'),
+                                     help='Log file for the OpenSubmit application.')
+    parser_configcreate.add_argument('--server_timezone',
+                                     default=os.environ.get('OPENSUBMIT_SERVER_TIMEZONE', 'Europe/Berlin'),
+                                     help='Time zone for all dates and deadlines.')
+    parser_configcreate.add_argument('--database_name',
+                                     default=os.environ.get('OPENSUBMIT_DATABASE_NAME', '/tmp/database.sqlite'),
+                                     help='Name of the database (file).'),
+    parser_configcreate.add_argument('--database_engine',
+                                     default=os.environ.get('OPENSUBMIT_DATABASE_ENGINE', 'sqlite3'),
+                                     choices=['postgresql', 'mysql', 'sqlite3', 'oracle'])
+    parser_configcreate.add_argument('--database_user', default=os.environ.get('OPENSUBMIT_DATABASE_USER', ''),
+                                     help='The user name for accessing the database. Not needed for SQLite.')
+    parser_configcreate.add_argument('--database_password', default=os.environ.get('OPENSUBMIT_DATABASE_PASSWORD', ''),
+                                     help='The user password for accessing the database. Not needed for SQLite.')
+    parser_configcreate.add_argument('--database_host', default=os.environ.get('OPENSUBMIT_DATABASE_HOST', ''),
+                                     help='The host name for accessing the database. Not needed for SQLite. Default is localhost.')
+    parser_configcreate.add_argument('--database_port', default=os.environ.get('OPENSUBMIT_DATABASE_PORT', ''),
+                                     help='The port number for accessing the database. Not needed for SQLite.')
+    parser_configcreate.add_argument('--login_google_oauth_key',
+                                     default=os.environ.get('OPENSUBMIT_LOGIN_GOOGLE_OAUTH_KEY', ''),
+                                     help='Google OAuth client key.')
+    parser_configcreate.add_argument('--login_google_oauth_secret',
+                                     default=os.environ.get('OPENSUBMIT_LOGIN_GOOGLE_OAUTH_SECRET', ''),
+                                     help='Google OAuth client secret.')
+    parser_configcreate.add_argument('--login_twitter_oauth_key',
+                                     default=os.environ.get('OPENSUBMIT_LOGIN_TWITTER_OAUTH_KEY', ''),
+                                     help='Twitter OAuth client key.')
+    parser_configcreate.add_argument('--login_twitter_oauth_secret',
+                                     default=os.environ.get('OPENSUBMIT_LOGIN_TWITTER_OAUTH_SECRET', ''),
+                                     help='Twitter OAuth client secret.')
+    parser_configcreate.add_argument('--login_github_oauth_key',
+                                     default=os.environ.get('OPENSUBMIT_LOGIN_GITHUB_OAUTH_KEY', ''),
+                                     help='GitHub OAuth client key.')
+    parser_configcreate.add_argument('--login_github_oauth_secret',
+                                     default=os.environ.get('OPENSUBMIT_LOGIN_GITHUB_OAUTH_SECRET', ''),
+                                     help='GitHUb OAuth client secret.')
+    parser_configcreate.add_argument('--login_openid_title',
+                                     default=os.environ.get('OPENSUBMIT_LOGIN_OPENID_TITLE', 'StackExchange'),
+                                     help='Title of the OpenID login button.')
+    parser_configcreate.add_argument('--login_openid_provider',
+                                     default=os.environ.get('OPENSUBMIT_LOGIN_OPENID_PROVIDER',
+                                                            ''),
+                                     help='URL of the OpenID provider.')
+    parser_configcreate.add_argument('--login_shib_title', default=os.environ.get('OPENSUBMIT_LOGIN_SHIB_TITLE', ''),
+                                     help='Title of the Shibboleth login button.')
+    parser_configcreate.add_argument('--login_demo', default=os.environ.get('OPENSUBMIT_LOGIN_DEMO', 'False'),
+                                     action='store_true', help='Title of the Shibboleth login button.')
+    parser_configcreate.add_argument('--admin_name',
+                                     default=os.environ.get('OPENSUBMIT_ADMIN_NAME', 'OpenSubmit Administrator'),
+                                     help='Name of the administrator, shown in privacy policy, impress and backend.')
+    parser_configcreate.add_argument('--admin_email',
+                                     default=os.environ.get('OPENSUBMIT_ADMIN_EMAIL', 'root@localhost'),
+                                     help='eMail of the administrator, shown in privacy policy, impress and backend.')
+    parser_configcreate.add_argument('--admin_address',
+                                     default=os.environ.get('OPENSUBMIT_ADMIN_ADDRESS', '(address available by eMail)'),
+                                     help='Address of the administrator, shown in privacy policy and impress.')
+    parser_configcreate.add_argument('--admin_impress_page', default=os.environ.get('OPENSUBMIT_IMPRESS_PAGE', ''),
+                                     help='Link to alternative impress page.')
+    parser_configcreate.add_argument('--admin_privacy_page', default=os.environ.get('OPENSUBMIT_PRIVACY_PAGE', ''),
+                                     help='Link to alternative privacy policy page.')
+    parser_configcreate.add_argument('--login_openshift_sso_provider',
+                                     default=os.environ.get('OPENSUBMIT_OPENSHIFT_SSO_PROVIDER', ''),
+                                     help='Link to openshift sso provider')
+    parser_configcreate.add_argument('--login_openshift_sso_title',
+                                     default=os.environ.get('OPENSUBMIT_LOGIN_OPENSHIFT_SSO_TITLE', ''),
+                                     help='Openshift SSO Login Description')
+    parser_configcreate.add_argument('--login_openshift_sso_oidc_verify_ssl',
+                                     default=os.environ.get('OPENSUBMIT_LOGIN_OPENSHIFT_SSO_OIDC_VERIFY_SSL', 'True'),
+                                     help='')
+    parser_configcreate.add_argument('--login_openshift_sso_oidc_rp_sign_algo',
+                                     default=os.environ.get('OPENSUBMIT_LOGIN_OPENSHIFT_SSO_OIDC_RP_SIGN_ALGO',
+                                                            'RS256'),
+                                     help='')
+    parser_configcreate.add_argument('--login_openshift_sso_oidc_rp_client_id',
+                                     default=os.environ.get('OPENSUBMIT_LOGIN_OPENSHIFT_SSO_OIDC_RP_CLIENT_ID',
+                                                            ''),
+                                     help='')
+    parser_configcreate.add_argument('--login_openshift_sso_oidc_rp_client_secret',
+                                     default=os.environ.get('OPENSUBMIT_LOGIN_OPENSHIFT_SSO_OIDC_RP_CLIENT_SECRET',
+                                                            ''),
+                                     help='')
 
-    parser_configtest = subparsers.add_parser('configtest', aliases=['configure'], help='Check config files and database for correct installation of the OpenSubmit web server.')
-    parser_democreate = subparsers.add_parser('democreate', aliases=['createdemo'], help='Install some test data (courses, assignments, users).')
+    parser_configtest = subparsers.add_parser('configtest', aliases=['configure'],
+                                              help='Check config files and database for correct installation of the OpenSubmit web server.')
+    parser_democreate = subparsers.add_parser('democreate', aliases=['createdemo'],
+                                              help='Install some test data (courses, assignments, users).')
     parser_apachecreate = subparsers.add_parser('apachecreate', help='Create config file snippet for Apache 2.4.')
     parser_fixperms = subparsers.add_parser('fixperms', help='Check and fix student and tutor permissions.')
-    parser_fixchecksums = subparsers.add_parser('fixchecksums', help='Re-create all student file checksums (for duplicate detection).')
+    parser_fixchecksums = subparsers.add_parser('fixchecksums',
+                                                help='Re-create all student file checksums (for duplicate detection).')
 
     parser_makeadmin = subparsers.add_parser('makeadmin', help='Make this user an admin with backend rights.')
     parser_makeadmin.add_argument('email')

@@ -1,10 +1,12 @@
 from django.contrib.auth.models import User
 from mozilla_django_oidc.auth import OIDCAuthenticationBackend
 
+from opensubmit import settings
+
 
 class MyOIDCAB(OIDCAuthenticationBackend):
     def provider_logout(request):
-        redirect_url = 'https://secure-sso-opensubmit.192.168.99.100.nip.io/auth/realms/master/protocol/openid-connect/logout'
+        redirect_url = settings.OIDC_OP_LOGOUT_URL_METHOD
         return redirect_url
 
     def create_user(self, claims):

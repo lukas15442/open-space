@@ -1,3 +1,0 @@
-rm -rf *
-cp -r "$(find $folder -maxdepth 1 -type d -not -path $folder/__pycache__ -not -path $folder)"/* ./
-ls -la

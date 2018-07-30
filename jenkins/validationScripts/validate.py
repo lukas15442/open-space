@@ -6,7 +6,7 @@ import urllib3
 from jenkins import Jenkins
 from jenkins import JenkinsException
 
-DEBUG = True
+DEBUG = False
 
 PIPELINE_BASE_URL = 'https://raw.githubusercontent.com/lukas15442/open-space/master/jenkins/pipelines/'
 JENKINS_URL = 'https://jenkins-opensubmit.192.168.99.100.nip.io'

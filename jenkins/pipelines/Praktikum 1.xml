@@ -6,7 +6,7 @@
     <properties>
         <hudson.security.AuthorizationMatrixProperty>
             <inheritanceStrategy class="org.jenkinsci.plugins.matrixauth.inheritance.NonInheritingStrategy"/>
-            <permission>hudson.model.Item.Read:{username}</permission>
+            <permission>hudson.model.Item.Read:{USERNAME}</permission>
         </hudson.security.AuthorizationMatrixProperty>
     </properties>
     <scm class="hudson.scm.NullSCM"/>

@@ -18,6 +18,8 @@ class MyOIDCAB(OIDCAuthenticationBackend):
         except User.DoesNotExist:
             user = self.UserModel.objects.create_user(username)
             user.first_name = name
+            user.profile.student_id = username
+            user.profile.save()
             user.save()
 
         return user
@@ -25,6 +27,8 @@ class MyOIDCAB(OIDCAuthenticationBackend):
     def update_user(self, user, claims):
         user.username = claims.get('preferred_username', '')
         user.first_name = claims.get('name', '')
+        user.profile.student_id = user.username
+        user.profile.save()
         user.save()
 
         return user

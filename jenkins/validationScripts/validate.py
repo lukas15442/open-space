@@ -51,7 +51,7 @@ def validate(job):
 
     print('Finished!')
 
-    job_url = JENKINS_URL + '/job/' + parse.quote(JOB_NAME)
+    job_url = JENKINS_URL + '/job/' + parse.quote(JOB_NAME) + '/' + build_number
     print(job_url)
 
     if not DEBUG:

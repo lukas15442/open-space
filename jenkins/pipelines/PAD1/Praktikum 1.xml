@@ -33,8 +33,8 @@
 rm -rf *
 cp -r &quot;$(find $folder -maxdepth 1 -type d -not -path $folder/__pycache__ -not -path $folder)&quot;/* ./
 ls -la
-g++ -O0 -g -Wall -Wextra -o binary *.cpp
-cppcheck --enable=all --check-config --suppress=missingIncludeSystem --inconclusive --xml --xml-version=2 *.cpp 2&gt; cppcheck-result.xml
+clang++ -O0 -g -Wall -Wextra -Weverything -o binary *.cpp
+scan-build -enable-checker core -enable-checker cplusplus -enable-checker deadcode -enable-checker osx -enable-checker security -enable-checker unix -o clangScanBuildReports -v -v clang++ -O0 *.cpp
 ls -la</command>
     </hudson.tasks.Shell>
     <org.jenkinsci.plugins.valgrind.ValgrindBuilder plugin="valgrind@0.28">
@@ -103,41 +103,12 @@ ls -la</command>
         </hudson.plugins.warnings.ConsoleParser>
       </consoleParsers>
     </hudson.plugins.warnings.WarningsPublisher>
-    <org.jenkinsci.plugins.cppcheck.CppcheckPublisher plugin="cppcheck@1.23">
-      <config>
-        <pattern>cppcheck-result.xml</pattern>
-        <ignoreBlankFiles>false</ignoreBlankFiles>
-        <allowNoReport>true</allowNoReport>
-        <configSeverityEvaluation>
-          <threshold></threshold>
-          <newThreshold></newThreshold>
-          <failureThreshold></failureThreshold>
-          <newFailureThreshold></newFailureThreshold>
-          <healthy></healthy>
-          <unHealthy></unHealthy>
-          <severityError>true</severityError>
-          <severityWarning>true</severityWarning>
-          <severityStyle>true</severityStyle>
-          <severityPerformance>true</severityPerformance>
-          <severityInformation>true</severityInformation>
-          <severityNoCategory>true</severityNoCategory>
-          <severityPortability>true</severityPortability>
-        </configSeverityEvaluation>
-        <configGraph>
-          <xSize>500</xSize>
-          <ySize>200</ySize>
-          <numBuildsInGraph>0</numBuildsInGraph>
-          <displayAllErrors>true</displayAllErrors>
-          <displayErrorSeverity>false</displayErrorSeverity>
-          <displayWarningSeverity>false</displayWarningSeverity>
-          <displayStyleSeverity>false</displayStyleSeverity>
-          <displayPerformanceSeverity>false</displayPerformanceSeverity>
-          <displayInformationSeverity>false</displayInformationSeverity>
-          <displayNoCategorySeverity>false</displayNoCategorySeverity>
-          <displayPortabilitySeverity>false</displayPortabilitySeverity>
-        </configGraph>
-      </config>
-    </org.jenkinsci.plugins.cppcheck.CppcheckPublisher>
+    <jenkins.plugins.clangscanbuild.publisher.ClangScanBuildPublisher plugin="clang-scanbuild@1.8">
+      <bugThreshold>0</bugThreshold>
+      <clangexcludedpaths></clangexcludedpaths>
+      <reportFolderName>clangScanBuildReports</reportFolderName>
+      <markBuildUnstableWhenThresholdIsExceeded>false</markBuildUnstableWhenThresholdIsExceeded>
+    </jenkins.plugins.clangscanbuild.publisher.ClangScanBuildPublisher>
     <org.jenkinsci.plugins.valgrind.ValgrindPublisher plugin="valgrind@0.28">
       <valgrindPublisherConfig>
         <pattern>*valgrindReport</pattern>

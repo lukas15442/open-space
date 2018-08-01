@@ -52,10 +52,11 @@ def validate(job):
     print('Finished!')
 
     job_url = JENKINS_URL + '/job/' + parse.quote(JOB_NAME) + '/' + str(build_number)
-    print(job_url)
+    result = '<a href="' + job_url + '">Jenkins results</a>'
+    print(result)
 
     if not DEBUG:
-        job.send_pass_result(job_url)
+        job.send_pass_result(result)
 
 
 def my_init(job):

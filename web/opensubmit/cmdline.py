@@ -320,7 +320,7 @@ def console_script(fsroot=''):
                                      default=os.environ.get('OPENSUBMIT_SERVER_TIMEZONE', 'Europe/Berlin'),
                                      help='Time zone for all dates and deadlines.')
     parser_configcreate.add_argument('--database_name',
-                                     default=os.environ.get('OPENSUBMIT_DATABASE_NAME', '/tmp/database.sqlite'),
+                                     default=os.environ.get('OPENSUBMIT_DATABASE_NAME', 'database.sqlite'),
                                      help='Name of the database (file).'),
     parser_configcreate.add_argument('--database_engine',
                                      default=os.environ.get('OPENSUBMIT_DATABASE_ENGINE', 'sqlite3'),

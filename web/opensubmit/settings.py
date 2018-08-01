@@ -214,7 +214,6 @@ MIDDLEWARE_CLASSES = (
     'django.contrib.messages.middleware.MessageMiddleware',
     'social_django.middleware.SocialAuthExceptionMiddleware',
     'opensubmit.middleware.CourseRegister',
-    'mozilla_django_oidc.middleware.SessionRefresh'
 )
 ROOT_URLCONF = 'opensubmit.urls'
 WSGI_APPLICATION = 'opensubmit.wsgi.application'
@@ -347,6 +346,7 @@ if LOGIN_OPENSHIFT_SSO:
     OIDC_RP_SIGN_ALGO = config.get('login', 'LOGIN_OPENSHIFT_SSO_OIDC_RP_SIGN_ALGO')
     OIDC_OP_JWKS_ENDPOINT = LOGIN_OPENSHIFT_SSO_PROVIDER + '/certs'
     OIDC_OP_LOGOUT_URL_METHOD = LOGIN_OPENSHIFT_SSO_PROVIDER + '/logout'
+    MIDDLEWARE_CLASSES += ('mozilla_django_oidc.middleware.SessionRefresh',)
 
 AUTHENTICATION_BACKENDS += ('opensubmit.social.lti.LtiAuth',)
 

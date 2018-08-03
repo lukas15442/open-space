@@ -99,7 +99,7 @@ ls -la</command>
       <parserConfigurations/>
       <consoleParsers>
         <hudson.plugins.warnings.ConsoleParser>
-          <parserName>GNU Make + GNU C Compiler (gcc)</parserName>
+          <parserName>Clang (LLVM based)</parserName>
         </hudson.plugins.warnings.ConsoleParser>
       </consoleParsers>
     </hudson.plugins.warnings.WarningsPublisher>
@@ -107,7 +107,7 @@ ls -la</command>
       <bugThreshold>0</bugThreshold>
       <clangexcludedpaths></clangexcludedpaths>
       <reportFolderName>clangScanBuildReports</reportFolderName>
-      <markBuildUnstableWhenThresholdIsExceeded>false</markBuildUnstableWhenThresholdIsExceeded>
+      <markBuildUnstableWhenThresholdIsExceeded>true</markBuildUnstableWhenThresholdIsExceeded>
     </jenkins.plugins.clangscanbuild.publisher.ClangScanBuildPublisher>
     <org.jenkinsci.plugins.valgrind.ValgrindPublisher plugin="valgrind@0.28">
       <valgrindPublisherConfig>
@@ -115,9 +115,9 @@ ls -la</command>
         <failThresholdInvalidReadWrite></failThresholdInvalidReadWrite>
         <failThresholdDefinitelyLost></failThresholdDefinitelyLost>
         <failThresholdTotal></failThresholdTotal>
-        <unstableThresholdInvalidReadWrite></unstableThresholdInvalidReadWrite>
-        <unstableThresholdDefinitelyLost></unstableThresholdDefinitelyLost>
-        <unstableThresholdTotal></unstableThresholdTotal>
+        <unstableThresholdInvalidReadWrite>0</unstableThresholdInvalidReadWrite>
+        <unstableThresholdDefinitelyLost>0</unstableThresholdDefinitelyLost>
+        <unstableThresholdTotal>0</unstableThresholdTotal>
         <sourceSubstitutionPaths></sourceSubstitutionPaths>
         <publishResultsForAbortedBuilds>false</publishResultsForAbortedBuilds>
         <publishResultsForFailedBuilds>false</publishResultsForFailedBuilds>

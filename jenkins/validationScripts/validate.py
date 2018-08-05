@@ -23,7 +23,16 @@ FOLDER = '/tmp/testing/'
 
 
 def validate(job):
+    global FOLDER
     my_init(job)
+    FOLDER = FOLDER[0:-1]
+
+    print(job.working_dir)
+    job.working_dir = os.popen(
+        'find ' + FOLDER + ' -maxdepth 1 -type d -not -path ' + FOLDER + '/__pycache__ -not -path ' + FOLDER + '') \
+        .read()[0:-1] + '/'
+    print(job.working_dir)
+    job.run_make(mandatory=True)
 
     server = Jenkins(JENKINS_URL, JENKINS_USERNAME, JENKINS_SECRET)
     create_pipeline(server)
@@ -52,11 +61,21 @@ def validate(job):
     print('Finished!')
 
     job_url = JENKINS_URL + '/job/' + parse.quote(JOB_NAME) + '/' + str(build_number)
-    result = '<a href="' + job_url + '">Jenkins results</a>'
+    result = '<a href="' + job_url + '" target="_blank">Jenkins results</a>'
+    success = 'Finished: SUCCESS' in build_output
+
+    if success:
+        print('Failed!')
+    else:
+        print('Success')
+
     print(result)
 
     if not DEBUG:
-        job.send_pass_result(result)
+        if success:
+            job.send_pass_result(result)
+        else:
+            job.send_fail_result(result)
 
 
 def my_init(job):

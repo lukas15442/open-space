@@ -301,7 +301,10 @@ LOGIN_TWITTER = (config.get("login", "LOGIN_TWITTER_OAUTH_KEY").strip() != '' an
 LOGIN_OPENID = (config.get('login', 'OPENID_PROVIDER').strip() != '')
 LOGIN_SHIB = (config.get('login', 'LOGIN_SHIB_DESCRIPTION').strip() != '')
 
-LOGIN_OPENSHIFT_SSO = (config.get('login', 'LOGIN_OPENSHIFT_SSO_PROVIDER').strip() != '')
+if DEMO:
+    LOGIN_OPENSHIFT_SSO = False
+else:
+    LOGIN_OPENSHIFT_SSO = (config.get('login', 'LOGIN_OPENSHIFT_SSO_PROVIDER').strip() != '')
 
 AUTHENTICATION_BACKENDS = (
     'django.contrib.auth.backends.ModelBackend',

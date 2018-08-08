@@ -5,7 +5,7 @@ ADD ./origin.repo /etc/yum.repos.d/origin.repo
 RUN \
   yum install -y epel-release && \
   yum update && \
-  yum install -y wget curl jq origin-clients unzip zip
+  yum install -y wget curl jq origin-clients unzip zip java-1.8.0-openjdk
 
 ADD ./init.sh /init.sh
 RUN chmod +x /init.sh

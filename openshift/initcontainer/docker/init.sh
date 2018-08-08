@@ -95,10 +95,21 @@ sed -i "s,{USERINFO_URL},$SSO_URL/auth/realms/hda/protocol/openid-connect/userin
 sed -i "s,{LOGOUT_URL},$SSO_URL/auth/realms/hda/protocol/openid-connect/logout,g" /config.xml
 sed -i "s,{REDIRECT_URL},https://$JENKINS_DOMAIN,g" /config.xml
 
-wget $GIT_URL/jenkins/plugins.zip
-unzip plugins.zip
+wget --no-check-certificate https://$JENKINS_DOMAIN/jnlpJars/jenkins-cli.jar
 
-\cp -r plugins/* /jenkins/plugins/
+export UPDATE_LIST=$( java -jar jenkins-cli.jar -auth admin:admin -noCertificateCheck \
+  -s https://$JENKINS_DOMAIN list-plugins | grep -e ')$' | awk '{ print $1 }' );
+if [ ! -z "${UPDATE_LIST}" ]; then
+    echo Updating Jenkins Plugins: ${UPDATE_LIST};
+    java -jar jenkins-cli.jar -auth admin:admin -noCertificateCheck \
+      -s https://$JENKINS_DOMAIN install-plugin ${UPDATE_LIST};
+fi
+
+java -jar jenkins-cli.jar -auth admin:admin -noCertificateCheck \
+      -s https://$JENKINS_DOMAIN install-plugin oic-auth;
+
 \cp config.xml /jenkins/
+rm -rf /jenkins/jobs/OpenShift\ Sample/
 
-curl -k -X POST -u admin:admin https://$JENKINS_DOMAIN/restart
+java -jar jenkins-cli.jar -auth admin:admin -noCertificateCheck \
+  -s https://$JENKINS_DOMAIN safe-restart;

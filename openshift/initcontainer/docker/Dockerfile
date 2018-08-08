@@ -10,4 +10,7 @@ RUN \
 ADD ./init.sh /init.sh
 RUN chmod +x /init.sh
 
-ENTRYPOINT /init.sh
+ADD ./sleep.sh /sleep.sh
+RUN chmod +x /sleep.sh
+
+ENTRYPOINT /sleep.sh

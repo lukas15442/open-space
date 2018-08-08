@@ -59,8 +59,10 @@ class LogoutView(LoginRequiredMixin, RedirectView):
 
     def get(self, request):
         auth.logout(request)
-        return redirect(
-            settings.OIDC_OP_LOGOUT_URL_METHOD + '?redirect_uri=' + settings.MAIN_URL)
+        if settings.LOGIN_OPENSHIFT_SSO:
+            return redirect(
+                settings.OIDC_OP_LOGOUT_URL_METHOD + '?redirect_uri=' + settings.MAIN_URL)
+        return super().get(request)
 
 
 class SettingsView(LoginRequiredMixin, UpdateView):

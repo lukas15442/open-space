@@ -67,17 +67,25 @@ docker-push: build
 	docker push koehlerlukas/opensubmit-web:$(VERSION)
 	docker build -t koehlerlukas/opensubmit-exec:$(VERSION) executor
 	docker push koehlerlukas/opensubmit-exec:$(VERSION)
+	docker build -t koehlerlukas/opensubmit-jenkins:latest jenkins/docker
+	docker push koehlerlukas/opensubmit-jenkins:latest
+	docker build -t koehlerlukas/opensubmit-initcontainer:latest openshift/initcontainer/docker
+	docker push koehlerlukas/opensubmit-initcontainer:latest
 
 # Re-create docker images and upload into openshift
-docker-pushopenshift: build
-	docker build -t 172.30.1.1:5000/opensubmit/web:$(VERSION) web
-	docker push 172.30.1.1:5000/opensubmit/web:$(VERSION)
-	docker build -t 172.30.1.1:5000/opensubmit/exec:$(VERSION) executor
-	docker push 172.30.1.1:5000/opensubmit/exec:$(VERSION)
+docker-pushtoopenshift: build
+	docker build -t 172.30.1.1:5000/test1/web:latest web
+	docker push 172.30.1.1:5000/test1/web:latest
+	docker build -t 172.30.1.1:5000/test1/exec:latest executor
+	docker push 172.30.1.1:5000/test1/exec:latest
 
-docker-pushjenkinsopenshift:
-	docker build -t 172.30.1.1:5000/opensubmit/jenkins:latest jenkins/docker
-	docker push 172.30.1.1:5000/opensubmit/jenkins:latest
+docker-pushjenkinstoopenshift:
+	docker build -t 172.30.1.1:5000/test1/jenkins:latest jenkins/docker
+	docker push 172.30.1.1:5000/test1/jenkins:latest
+
+docker-pushinittoopenshift:
+	docker build -t 172.30.1.1:5000/test1/initcontainer:latest openshift/initcontainer/docker
+	docker push 172.30.1.1:5000/test1/initcontainer:latest
 
 # Upload built packages to PyPI.
 # Assumes valid credentials in ~/.pypirc

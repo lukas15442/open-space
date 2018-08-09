@@ -1,5 +1,7 @@
 #!/bin/bash
 
+oc login $OC_URL
+
 # import realm
 wget $GIT_URL/sso/realm-export.json
 
@@ -62,7 +64,6 @@ export OPENSUBMIT_ID=$(curl -k "$SSO_URL/auth/admin/realms/hda/clients" \
 export OPENSUBMIT_SECRET=$(curl -k "$SSO_URL/auth/admin/realms/hda/clients/$OPENSUBMIT_ID/client-secret" \
   -H "Authorization: Bearer $TKN" | jq -r ".value")
 
-oc login $OC_URL && \
 oc project $MY_POD_NAMESPACE && \
 oc set env deploymentconfig/web OPENSUBMIT_LOGIN_OPENSHIFT_SSO_OIDC_RP_CLIENT_SECRET=$OPENSUBMIT_SECRET
 

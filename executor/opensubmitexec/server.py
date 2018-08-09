@@ -3,21 +3,19 @@ Internal functions related to the communication with the
 OpenSubmit server.
 '''
 
-import os
-import shutil
-import os.path
 import glob
 import json
+import os.path
+import ssl
+from urllib.error import HTTPError, URLError
+from urllib.parse import urlencode
+from urllib.request import urlopen
 
-from .exceptions import *
+import requests
+
 from .filesystem import *
 from .hostinfo import ipaddress, all_host_infos
 
-from urllib.request import urlopen, urlretrieve
-from urllib.error import HTTPError, URLError
-from urllib.parse import urlencode
-
-import logging
 logger = logging.getLogger('opensubmitexec')
 
 
@@ -27,10 +25,11 @@ def fetch(url, fullpath):
     '''
     logger.debug("Fetching %s from %s" % (fullpath, url))
 
-    tmpfile, headers = urlretrieve(url)
     if os.path.exists(fullpath):
         os.remove(fullpath)
-    shutil.move(tmpfile, fullpath)
+    with open(fullpath, 'wb') as f:
+        resp = requests.get(url, verify=False)
+        f.write(resp.content)
 
 
 def send_post(config, urlpath, post_data):
@@ -43,7 +42,12 @@ def send_post(config, urlpath, post_data):
     post_data = post_data.encode("utf-8", errors="ignore")
     url = server + urlpath
     try:
-        urlopen(url, post_data)
+        ssl_verification = config.getboolean("Server", "ssl_verification")
+        if ssl_verification:
+            urlopen(url, post_data)
+        else:
+            context = ssl._create_unverified_context()
+            urlopen(url, post_data, context=context)
     except Exception as e:
         logger.error('Error while sending data to server: ' + str(e))
 
@@ -97,7 +101,12 @@ def fetch_job(config):
 
     try:
         # Fetch information from server
-        result = urlopen(url)
+        ssl_verification = config.getboolean("Server", "ssl_verification")
+        if ssl_verification:
+            result = urlopen(url)
+        else:
+            context = ssl._create_unverified_context()
+            result = urlopen(url, context=context)
         headers = result.info()
         if not compatible_api_version(headers["APIVersion"]):
             # No proper reporting possible, so only logging.
@@ -135,7 +144,7 @@ def fetch_job(config):
         submission_fname = job.working_dir + job.file_name
         with open(submission_fname, 'wb') as target:
             target.write(result.read())
-        assert(os.path.exists(submission_fname))
+        assert (os.path.exists(submission_fname))
 
         # Store validator package in working directory
         validator_fname = job.working_dir + 'download.validator'
@@ -174,7 +183,7 @@ def fake_fetch_job(config, src_dir):
         logger.debug("Copying {0} to {1} ...".format(fname, job.working_dir))
         shutil.copy(fname, job.working_dir)
     case_files = glob.glob(job.working_dir + os.sep + '*')
-    assert(len(case_files) == 2)
+    assert (len(case_files) == 2)
     if os.path.basename(case_files[0]) in ['validator.py', 'validator.zip']:
         validator = case_files[0]
         submission = case_files[1]

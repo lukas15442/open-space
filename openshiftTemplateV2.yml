@@ -34,6 +34,12 @@ objects:
             valueFrom:
               fieldRef:
                 fieldPath: metadata.namespace
+          - name: ADMIN_FIRST_NAME
+            value: ${ADMIN_FIRST_NAME}
+          - name: ADMIN_LAST_NAME
+            value: ${ADMIN_LAST_NAME}
+          - name: OPENSUBMIT_ADMIN_MAIL
+            value: ${OPENSUBMIT_ADMIN_MAIL}
           - name: JENKINS_ADMIN
             value: ${JENKINS_ADMIN}
           - name: OC_URL
@@ -764,10 +770,25 @@ parameters:
   required: true
   name: GIT_URL
 
-- displayName: jenkins admin
+- displayName: jenkins admin username
   description: This user will be admin
   required: true
   name: JENKINS_ADMIN
+
+- displayName: jenkins admin first name
+  description: This user will be admin
+  required: true
+  name: ADMIN_FIRST_NAME
+
+- displayName: jenkins admin last name
+  description: This user will be admin
+  required: true
+  name: ADMIN_LAST_NAME
+
+- displayName: opensubmit admin email
+  description: opensubmit user with this email will be admin
+  required: true
+  name: OPENSUBMIT_ADMIN_MAIL
 
 # opensubmit parameter
 - displayName: opensubmit share volume size in GB

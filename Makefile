@@ -63,10 +63,10 @@ bumpversion:
 # Re-create docker images and upload into registry
 docker-push: build
 	docker login --username=koehlerlukas
-	docker build -t koehlerlukas/opensubmit-web:$(VERSION) web
-	docker push koehlerlukas/opensubmit-web:$(VERSION)
-	docker build -t koehlerlukas/opensubmit-exec:$(VERSION) executor
-	docker push koehlerlukas/opensubmit-exec:$(VERSION)
+	docker build -t koehlerlukas/opensubmit-web:latest web
+	docker push koehlerlukas/opensubmit-web:latest
+	docker build -t koehlerlukas/opensubmit-exec:latest executor
+	docker push koehlerlukas/opensubmit-exec:latest
 	docker build -t koehlerlukas/opensubmit-jenkins:latest jenkins/docker
 	docker push koehlerlukas/opensubmit-jenkins:latest
 	docker build -t koehlerlukas/opensubmit-initcontainer:latest openshift/initcontainer/docker

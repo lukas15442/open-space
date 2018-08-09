@@ -49,7 +49,7 @@ curl -k -v -X POST "$SSO_URL/auth/admin/realms/hda/clients" \
   -d "@/jenkins.json"
 
 
-# change client secret from opensubmit
+# change client secret from opensubmit and add admin rights
 export TKN=$(curl -k "$SSO_URL/auth/realms/master/protocol/openid-connect/token" \
   -d "username=$SSO_USERNAME" \
   -d "password=$SSO_PASSWORD" \
@@ -65,6 +65,22 @@ export OPENSUBMIT_SECRET=$(curl -k "$SSO_URL/auth/admin/realms/hda/clients/$OPEN
 oc login $OC_URL && \
 oc project $MY_POD_NAMESPACE && \
 oc set env deploymentconfig/web OPENSUBMIT_LOGIN_OPENSHIFT_SSO_OIDC_RP_CLIENT_SECRET=$OPENSUBMIT_SECRET
+
+# make admin in opensubmit
+psql postgresql://opensubmit:opensubmit@db/opensubmit << EOF
+     \set jenkinsAdmin `echo "$JENKINS_ADMIN"`
+     \set adminFirstName `echo "$ADMIN_FIRST_NAME"`
+     \set adminLastName `echo "$ADMIN_LAST_NAME"`
+     \set opensubmitAdminMail `echo "$OPENSUBMIT_ADMIN_MAIL"`
+
+     INSERT INTO auth_user
+     (username, is_superuser, is_staff, password, first_name, last_name, email, is_active, date_joined)
+     VALUES (:'jenkinsAdmin', true, true, 'None', :'adminFirstName', :'adminLastName', :'opensubmitAdminMail', true, now());
+
+     INSERT INTO opensubmit_userprofile
+     (user_id, student_id)
+     VALUES ((SELECT id FROM auth_user WHERE username=:'jenkinsAdmin'), :'jenkinsAdmin')
+EOF
 
 
 # jenkins openid config
@@ -106,10 +122,11 @@ if [ ! -z "${UPDATE_LIST}" ]; then
 fi
 
 java -jar jenkins-cli.jar -auth admin:admin -noCertificateCheck \
-      -s https://$JENKINS_DOMAIN install-plugin oic-auth;
+      -s https://$JENKINS_DOMAIN install-plugin oic-auth valgrind warnings clang-scanbuild cppcheck;
 
 \cp config.xml /jenkins/
 rm -rf /jenkins/jobs/OpenShift\ Sample/
 
 java -jar jenkins-cli.jar -auth admin:admin -noCertificateCheck \
   -s https://$JENKINS_DOMAIN safe-restart;
+

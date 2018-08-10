@@ -23,6 +23,8 @@ echo "Database is up."
 # perform relevant database migrations
 opensubmit-web configtest
 
+chmod -R 777 /data
+
 # Start Apache
 rm -f /var/run/apache2/apache2.pid
 apache2ctl -D FOREGROUND

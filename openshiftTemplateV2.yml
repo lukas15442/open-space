@@ -780,13 +780,13 @@ objects:
 
 parameters:
 # global parameter
-- value: '192.168.99.100.nip.io'
+- value: 'apps.ocp.fbi.h-da.de'
   required: true
   name: DOMAIN
   displayName: route domain
 
 - displayName: openshift url
-  value: 'https://192.168.99.100:8443'
+  value: 'https://console.ocp.fbi.h-da.de'
   required: true
   name: OC_URL
 

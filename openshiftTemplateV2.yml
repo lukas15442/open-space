@@ -595,8 +595,8 @@ objects:
     - annotations: null
       from:
         kind: DockerImage
-        name: registry.access.redhat.com/redhat-sso-7/sso72-openshift:latest
-      name: latest
+        name: registry.access.redhat.com/redhat-sso-7/sso72-openshift:1.1
+      name: '1.1'
 
 - kind: DeploymentConfig
   apiVersion: v1
@@ -615,7 +615,7 @@ objects:
         - sso
         from:
           kind: ImageStreamTag
-          name: redhat-sso:latest
+          name: redhat-sso:1.1
     - type: ConfigChange
     replicas: 1
     selector:

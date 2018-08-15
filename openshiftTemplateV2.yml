@@ -446,11 +446,11 @@ objects:
           - name: ENABLE_FATAL_ERROR_LOG_FILE
             value: 'false'
           volumeMounts:
-          - name: jenkins-volume
-            mountPath: /var/lib/jenkins
-          - name: opensubmit-share-volume
-            mountPath: /opensubmit
-            readOnly: true
+            - name: jenkins-volume
+              mountPath: /var/lib/jenkins
+            - mountPath: /opensubmit
+              name: opensubmit-share-volume
+              readOnly: true
           terminationMessagePath: /dev/termination-log
           securityContext:
             capabilities: {}
@@ -586,6 +586,18 @@ objects:
     tls:
       termination: reencrypt
 
+- apiVersion: v1
+  kind: ImageStream
+  metadata:
+    name: redhat-sso
+  spec:
+    tags:
+    - annotations: null
+      from:
+        kind: DockerImage
+        name: registry.access.redhat.com/redhat-sso-7/sso72-openshift:latest
+      name: latest
+
 - kind: DeploymentConfig
   apiVersion: v1
   metadata:
@@ -603,8 +615,7 @@ objects:
         - sso
         from:
           kind: ImageStreamTag
-          namespace: openshift
-          name: redhat-sso72-openshift:1.1
+          name: redhat-sso:latest
     - type: ConfigChange
     replicas: 1
     selector:

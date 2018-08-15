@@ -113,7 +113,7 @@ objects:
     name: opensubmit-share-volume
   spec:
     accessModes:
-    - ReadWriteOnce
+    - ReadOnlyMany
     resources:
       requests:
         storage: ${OPENSUBMIT_SHARE}Gi
@@ -450,6 +450,7 @@ objects:
             mountPath: /var/lib/jenkins
           - name: opensubmit-share-volume
             mountPath: /opensubmit
+            readOnly: true
           terminationMessagePath: /dev/termination-log
           securityContext:
             capabilities: {}

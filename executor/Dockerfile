@@ -19,6 +19,16 @@ RUN pip3 install -r /install/requirements.txt
 COPY dist/*.whl /install
 RUN pip3 install /install/*.whl
 
+RUN chgrp 0 /etc && \
+    chmod g=u /etc && \
+    chgrp 0 /var && \
+    chmod g=u /var && \
+    chgrp -R 0 /var/log && \
+    chmod -R g=u /var/log && \
+    chmod g=u /etc/passwd
+
+USER 1001
+
 # Enable django-admin in interactive mode when running
 ENV PYTHONUNBUFFERED 1
 

@@ -14,13 +14,13 @@ export TKN=$(curl -k "$SSO_URL/auth/realms/master/protocol/openid-connect/token"
 curl -k -v -X POST "$SSO_URL/auth/admin/realms" \
   -H "Content-Type:application/json" \
   -H "Authorization: Bearer $TKN" \
-  -d "@/realm-export.json"
+  -d "@realm-export.json"
 
 
 # import client opensubmit
 wget $GIT_URL/sso/opensubmit.json
 
-sed -i "s/{DOMAIN}/$WEB_DOMAIN/g" /opensubmit.json
+sed -i "s/{DOMAIN}/$WEB_DOMAIN/g" opensubmit.json
 
 export TKN=$(curl -k "$SSO_URL/auth/realms/master/protocol/openid-connect/token" \
   -d "username=$SSO_USERNAME" \
@@ -31,13 +31,13 @@ export TKN=$(curl -k "$SSO_URL/auth/realms/master/protocol/openid-connect/token"
 curl -k -v -X POST "$SSO_URL/auth/admin/realms/hda/clients" \
   -H "Content-Type:application/json" \
   -H "Authorization: Bearer $TKN" \
-  -d "@/opensubmit.json"
+  -d "@opensubmit.json"
 
 
 # import client jenkins
 wget $GIT_URL/sso/jenkins.json
 
-sed -i "s/{DOMAIN}/$JENKINS_DOMAIN/g" /jenkins.json
+sed -i "s/{DOMAIN}/$JENKINS_DOMAIN/g" jenkins.json
 
 export TKN=$(curl -k "$SSO_URL/auth/realms/master/protocol/openid-connect/token" \
   -d "username=$SSO_USERNAME" \
@@ -48,7 +48,7 @@ export TKN=$(curl -k "$SSO_URL/auth/realms/master/protocol/openid-connect/token"
 curl -k -v -X POST "$SSO_URL/auth/admin/realms/hda/clients" \
   -H "Content-Type:application/json" \
   -H "Authorization: Bearer $TKN" \
-  -d "@/jenkins.json"
+  -d "@jenkins.json"
 
 
 # change client secret from opensubmit and add admin rights
@@ -103,14 +103,14 @@ export JENKINS_CRYPT_SECRET=$(curl -k --user 'admin:admin' --data-urlencode \
 
 wget $GIT_URL/jenkins/config.xml
 
-sed -i "s/{USERNAME}/$JENKINS_ADMIN/g" /config.xml
-sed -i "s,{SECRET},$JENKINS_CRYPT_SECRET,g" /config.xml
+sed -i "s/{USERNAME}/$JENKINS_ADMIN/g" config.xml
+sed -i "s,{SECRET},$JENKINS_CRYPT_SECRET,g" config.xml
 
-sed -i "s,{TOKEN_URL},$SSO_URL/auth/realms/hda/protocol/openid-connect/token,g" /config.xml
-sed -i "s,{AUTH_URL},$SSO_URL/auth/realms/hda/protocol/openid-connect/auth,g" /config.xml
-sed -i "s,{USERINFO_URL},$SSO_URL/auth/realms/hda/protocol/openid-connect/userinfo,g" /config.xml
-sed -i "s,{LOGOUT_URL},$SSO_URL/auth/realms/hda/protocol/openid-connect/logout,g" /config.xml
-sed -i "s,{REDIRECT_URL},https://$JENKINS_DOMAIN,g" /config.xml
+sed -i "s,{TOKEN_URL},$SSO_URL/auth/realms/hda/protocol/openid-connect/token,g" config.xml
+sed -i "s,{AUTH_URL},$SSO_URL/auth/realms/hda/protocol/openid-connect/auth,g" config.xml
+sed -i "s,{USERINFO_URL},$SSO_URL/auth/realms/hda/protocol/openid-connect/userinfo,g" config.xml
+sed -i "s,{LOGOUT_URL},$SSO_URL/auth/realms/hda/protocol/openid-connect/logout,g" config.xml
+sed -i "s,{REDIRECT_URL},https://$JENKINS_DOMAIN,g" config.xml
 
 wget --no-check-certificate https://$JENKINS_DOMAIN/jnlpJars/jenkins-cli.jar
 

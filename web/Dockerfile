@@ -15,6 +15,7 @@ RUN apt-get update \
 ENV LANG en_US.utf8
 COPY ./docker/httpd.conf /etc/apache2/sites-enabled/httpd.conf
 COPY ./docker/docker-entry.sh /docker-entry.sh
+COPY ./docker/ports.conf /etc/apache2
 
 # Install dependencies explicitely for Docker caching
 RUN mkdir /install
@@ -26,9 +27,32 @@ RUN pip3 install -r /install/requirements.txt psycopg2-binary
 COPY dist/*.whl /install
 RUN pip3 install /install/*.whl
 
-# Enable django-admin in interactive mode when running
-ENV PYTHONUNBUFFERED 1
-ENV DJANGO_SETTINGS_MODULE opensubmit.settings
+RUN chgrp 0 /etc && \
+    chmod g=u /etc && \
+    chgrp 0 /usr/local/lib/python3.6/dist-packages/opensubmit && \
+    chmod g=u /usr/local/lib/python3.6/dist-packages/opensubmit && \
+    chgrp 0 /var && \
+    chmod g=u /var && \
+    chgrp -R 0 /var/run && \
+    chmod -R g=u /var/run && \
+    chgrp -R 0 /var/lock && \
+    chmod -R g=u /var/lock && \
+    chgrp -R 0 /var/log && \
+    chmod -R g=u /var/log && \
+    chgrp -R 0 /var/log/apache2 && \
+    chmod -R g=u /var/log/apache2 && \
+    chmod g=u /etc/passwd
 
-EXPOSE 80
+# Enable django-admin in interactive mode when running
+ENV PYTHONUNBUFFERED=1 \
+    DJANGO_SETTINGS_MODULE=opensubmit.settings \
+    APACHE_RUN_DIR=/var/run \
+    APACHE_PID_FILE=/var/lock/apache2.pid \
+    APACHE_RUN_USER=default \
+    APACHE_RUN_GROUP=root \
+    APACHE_LOG_DIR=/var/log/apache2
+
+USER 1001
+
+EXPOSE 8080
 ENTRYPOINT ["/docker-entry.sh"]

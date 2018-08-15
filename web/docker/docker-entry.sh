@@ -1,6 +1,12 @@
 #!/bin/bash
 set -e
 
+if ! whoami &> /dev/null; then
+  if [ -w /etc/passwd ]; then
+    echo "${USER_NAME:-default}:x:$(id -u):0:${USER_NAME:-default} user:${HOME}:/sbin/nologin" >> /etc/passwd
+  fi
+fi
+
 # Docker image startup script
 
 # (Re-)create OpenSubmit configuration from env variables
@@ -23,8 +29,5 @@ echo "Database is up."
 # perform relevant database migrations
 opensubmit-web configtest
 
-chmod -R 777 /data
-
 # Start Apache
-rm -f /var/run/apache2/apache2.pid
-apache2ctl -D FOREGROUND
+apache2 -D FOREGROUND

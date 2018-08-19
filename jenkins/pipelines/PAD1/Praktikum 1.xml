@@ -33,6 +33,7 @@
 rm -rf *
 cp -r &quot;$(find $folder -maxdepth 1 -type d -not -path $folder/__pycache__ -not -path $folder)&quot;/* ./
 ls -la
+rm -rf $folder
 clang++ -O0 -g -Wall -Wextra -Weverything -o binary *.cpp
 scan-build -enable-checker core -enable-checker cplusplus -enable-checker deadcode -enable-checker osx -enable-checker security -enable-checker unix -o clangScanBuildReports -v -v clang++ -O0 *.cpp
 ls -la</command>

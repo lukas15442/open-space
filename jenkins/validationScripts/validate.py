@@ -9,9 +9,9 @@ from jenkins import JenkinsException
 DEBUG = False
 
 PIPELINE_BASE_URL = 'https://raw.githubusercontent.com/lukas15442/open-space/master/jenkins/pipelines/'
-JENKINS_URL = 'https://jenkins-opensubmit.apps.ocp.fbi.h-da.de'
+JENKINS_URL = 'https://jenkins-open-submit.apps.ocp.fbi.h-da.de'
 JENKINS_USERNAME = 'l.koehler'
-JENKINS_SECRET = '62dcc1cf57c403d7e2a06ac27ff37bdb'
+JENKINS_SECRET = 'a34b91cdeaa9ec91d0ac39c01024005f'
 
 # Parameter that will be filled when debug is off
 USERNAME = 'istlukoeh'
@@ -30,7 +30,7 @@ def validate(job):
     print(job.working_dir)
     job.working_dir = os.popen(
         'find ' + FOLDER + ' -maxdepth 1 -type d -not -path ' + FOLDER + '/__pycache__ -not -path ' + FOLDER + '') \
-        .read()[0:-1] + '/'
+                          .read()[0:-1] + '/'
     print(job.working_dir)
     job.run_make(mandatory=True)
 
@@ -89,6 +89,7 @@ def my_init(job):
         ASSIGNMENT = job.assignment
         FOLDER = job.working_dir
 
+        os.system('scp -i /ssh/key -r ' + FOLDER + ' jenkins-ssh@jenkins-ssh:/opensubmit')
         os.system('chmod -R 777 ' + FOLDER)
 
     os.environ['PYTHONHTTPSVERIFY'] = '0'

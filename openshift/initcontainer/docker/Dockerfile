@@ -5,7 +5,7 @@ ADD ./origin.repo /etc/yum.repos.d/origin.repo
 RUN \
   yum -y install epel-release && \
   yum -y update && \
-  yum -y install wget curl jq origin-clients unzip zip java-1.8.0-openjdk
+  yum -y install wget curl jq origin-clients unzip zip java-1.8.0-openjdk postgresql
 
 RUN mkdir /working && mkdir /.kube
 

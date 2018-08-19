@@ -125,8 +125,23 @@ fi
 java -jar jenkins-cli.jar -auth admin:admin -noCertificateCheck \
       -s https://$JENKINS_DOMAIN install-plugin oic-auth valgrind warnings clang-scanbuild cppcheck;
 
-\cp config.xml /jenkins/
-rm -rf /jenkins/jobs/OpenShift\ Sample/
+echo " \
+    \cp config.xml /var/lib/jenkins/ && \
+    rm -rf /var/lib/jenkins/jobs/OpenShift\ Sample/ \
+" > jenkinsScript
+
+export JENKINS_POD_NAME=$(oc get pods | grep -o "jenkins\S*")
+export EXEC_POD_NAME=$(oc get pods | grep -o "exec\S*")
+
+oc cp config.xml $JENKINS_POD_NAME:./
+oc cp jenkinsScript $JENKINS_POD_NAME:./
+oc exec $JENKINS_POD_NAME -- chmod +x jenkinsScript
+oc exec $JENKINS_POD_NAME -- bash -c ./jenkinsScript
+
+oc exec $EXEC_POD_NAME -- ssh-keygen -t rsa -f /ssh/key -N ''
+oc cp $EXEC_POD_NAME:ssh/key.pub ./
+oc exec $JENKINS_POD_NAME -- mkdir /var/lib/jenkins/ssh
+oc cp key.pub $JENKINS_POD_NAME:/var/lib/jenkins/ssh/authorized_keys
 
 java -jar jenkins-cli.jar -auth admin:admin -noCertificateCheck \
   -s https://$JENKINS_DOMAIN safe-restart;

@@ -9,9 +9,9 @@ from jenkins import JenkinsException
 DEBUG = False
 
 PIPELINE_BASE_URL = 'https://raw.githubusercontent.com/lukas15442/open-space/master/jenkins/pipelines/'
-JENKINS_URL = 'https://jenkins-opensubmit.192.168.99.100.nip.io'
+JENKINS_URL = 'https://jenkins-opensubmit.apps.ocp.fbi.h-da.de'
 JENKINS_USERNAME = 'l.koehler'
-JENKINS_SECRET = '94457fadc3ee1937a48af8175de6e4d4'
+JENKINS_SECRET = '62dcc1cf57c403d7e2a06ac27ff37bdb'
 
 # Parameter that will be filled when debug is off
 USERNAME = 'istlukoeh'

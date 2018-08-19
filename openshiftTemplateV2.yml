@@ -58,13 +58,6 @@ objects:
             value: ${GIT_URL}
           image: ' '
           name: initcontainer
-          volumeMounts:
-          - mountPath: /jenkins
-            name: jenkins-volume
-        volumes:
-        - name: jenkins-volume
-          persistentVolumeClaim:
-            claimName: jenkins-volume
     test: false
     triggers:
     - type: ConfigChange
@@ -106,18 +99,6 @@ objects:
       termination: edge
       insecureEdgeTerminationPolicy: Redirect
 
-
-- apiVersion: v1
-  kind: PersistentVolumeClaim
-  metadata:
-    name: opensubmit-share-volume
-  spec:
-    accessModes:
-    - ReadOnlyMany
-    resources:
-      requests:
-        storage: ${OPENSUBMIT_SHARE}Gi
-  status: {}
 
 - apiVersion: v1
   kind: PersistentVolumeClaim
@@ -172,7 +153,7 @@ objects:
   metadata:
     name: db
   spec:
-    replicas: 1
+    replicas: 0
     selector:
       app: db
       deploymentconfig: db
@@ -220,7 +201,7 @@ objects:
   metadata:
     name: web
   spec:
-    replicas: 1
+    replicas: 0
     selector:
       app: web
       deploymentconfig: web
@@ -295,7 +276,7 @@ objects:
   metadata:
     name: exec
   spec:
-    replicas: 1
+    replicas: 0
     selector:
       app: exec
       deploymentconfig: exec
@@ -312,12 +293,12 @@ objects:
           image: ' '
           name: exec
           volumeMounts:
-          - mountPath: /tmp
-            name: opensubmit-share-volume
+          - mountPath: /ssh
+            name: opensubmit-exec-ssh-volume
         volumes:
-        - name: opensubmit-share-volume
+        - name: opensubmit-exec-ssh-volume
           persistentVolumeClaim:
-            claimName: opensubmit-share-volume
+            claimName: opensubmit-exec-ssh-volume
     test: false
     triggers:
     - type: ConfigChange
@@ -329,6 +310,18 @@ objects:
           kind: ImageStreamTag
           name: exec:latest
       type: ImageChange
+
+- apiVersion: v1
+  kind: PersistentVolumeClaim
+  metadata:
+    name: opensubmit-exec-ssh-volume
+  spec:
+    accessModes:
+    - ReadWriteOnce
+    resources:
+      requests:
+        storage: 10Mi
+  status: {}
 
 - apiVersion: v1
   kind: Service
@@ -418,7 +411,7 @@ objects:
           name: jenkins:latest
         lastTriggeredImage:
     - type: ConfigChange
-    replicas: 1
+    replicas: 0
     selector:
       name: jenkins
     template:
@@ -448,9 +441,6 @@ objects:
           volumeMounts:
             - name: jenkins-volume
               mountPath: /var/lib/jenkins
-            - mountPath: /opensubmit
-              name: opensubmit-share-volume
-              readOnly: true
           terminationMessagePath: /dev/termination-log
           securityContext:
             capabilities: {}
@@ -459,9 +449,6 @@ objects:
         - name: jenkins-volume
           persistentVolumeClaim:
             claimName: jenkins-volume
-        - name: opensubmit-share-volume
-          persistentVolumeClaim:
-            claimName: opensubmit-share-volume
         restartPolicy: Always
         dnsPolicy: ClusterFirst
 
@@ -498,6 +485,19 @@ objects:
       name: jenkins
     type: ClusterIP
     sessionAffinity: None
+
+- kind: Service
+  apiVersion: v1
+  metadata:
+    name: jenkins-ssh
+  spec:
+    ports:
+    - name: agent
+      protocol: TCP
+      port: 22
+      targetPort: 2222
+    selector:
+      name: jenkins
 
 - kind: Service
   apiVersion: v1
@@ -617,7 +617,7 @@ objects:
           kind: ImageStreamTag
           name: redhat-sso:1.1
     - type: ConfigChange
-    replicas: 1
+    replicas: 0
     selector:
       deploymentConfig: sso
     template:
@@ -718,7 +718,7 @@ objects:
           namespace: openshift
           name: postgresql:9.6
     - type: ConfigChange
-    replicas: 1
+    replicas: 0
     selector:
       deploymentConfig: sso-postgresql
     template:
@@ -817,13 +817,6 @@ parameters:
   name: OPENSUBMIT_ADMIN_MAIL
 
 # opensubmit parameter
-- displayName: opensubmit share volume size in GB
-  description: share volume is for jenkins /opensubmit and for exec /tmp
-  from: '[0-9]{4}'
-  value: '10'
-  required: true
-  name: OPENSUBMIT_SHARE
-
 - displayName: opensubmit postgres volume size in GB
   from: '[0-9]{4}'
   value: '10'

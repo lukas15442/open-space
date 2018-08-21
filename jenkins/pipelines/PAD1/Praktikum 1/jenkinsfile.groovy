@@ -1,7 +1,6 @@
 node {
     stage('Copy files') {
-        sh(
-            '''
+        sh('''
                 chmod -Rf 777 ./
                 rm -rf *
                 ls -la
@@ -12,7 +11,7 @@ node {
     }
     stage('Build') {
         sh(
-            '''
+                '''
                 clang++ -O0 -g -Wall -Wextra -Weverything -o binary *.cpp
             '''
         )
@@ -66,6 +65,28 @@ node {
                 unstableThresholdDefinitelyLost: '0',
                 unstableThresholdInvalidReadWrite: '0',
                 unstableThresholdTotal: '0'
+        )
+    }
+    stage('Pull and compile cppunit tests') {
+        git(
+                'https://github.com/lukas15442/open-submit-cppunit-test.git'
+        )
+        sh('''
+                cmake ./
+                make
+           '''
+        )
+    }
+    stage('Run cppunit tests') {
+        sh('./cppunitTemplate')
+        xunit(
+                thresholds: [
+                        skipped(failureThreshold: '0'),
+                        failed(failureThreshold: '0')
+                ],
+                tools: [CppUnit(
+                        pattern: 'testResults.xml',
+                )]
         )
     }
 }

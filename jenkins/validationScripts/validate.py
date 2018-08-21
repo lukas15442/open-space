@@ -8,10 +8,25 @@ from jenkins import JenkinsException
 
 DEBUG = False
 
-PIPELINE_BASE_URL = 'https://raw.githubusercontent.com/lukas15442/open-space/master/jenkins/pipelines/'
+PIPELINE_CONFIG_URL = 'https://raw.githubusercontent.com/lukas15442/open-space/master/jenkins/pipelines/PipelineConfig.xml'
+
+PIPELINE_REPO = 'https://github.com/lukas15442/open-space.git'
+PIPELINE_BASE = 'jenkins/pipelines'
+JENKINSFILE_NAME = 'jenkinsfile.groovy'
+
 JENKINS_URL = 'https://jenkins-open-submit.apps.ocp.fbi.h-da.de'
 JENKINS_USERNAME = 'l.koehler'
 JENKINS_SECRET = 'a34b91cdeaa9ec91d0ac39c01024005f'
+
+
+
+
+
+
+
+
+
+
 
 # Parameter that will be filled when debug is off
 USERNAME = 'istlukoeh'
@@ -19,7 +34,7 @@ COURSE = 'PAD1'
 ASSIGNMENT = 'Praktikum 1'
 COURSE_AND_ASSIGNMENT = COURSE + '-' + ASSIGNMENT
 JOB_NAME = COURSE + '-' + ASSIGNMENT + '-' + USERNAME
-FOLDER = '/tmp/testing/'
+FOLDER = '/tmp/1_3wrqhvuj/'
 
 
 def validate(job):
@@ -27,12 +42,11 @@ def validate(job):
     my_init(job)
     FOLDER = FOLDER[0:-1]
 
-    print(job.working_dir)
-    job.working_dir = os.popen(
-        'find ' + FOLDER + ' -maxdepth 1 -type d -not -path ' + FOLDER + '/__pycache__ -not -path ' + FOLDER + '') \
-                          .read()[0:-1] + '/'
-    print(job.working_dir)
-    job.run_make(mandatory=True)
+    if not DEBUG:
+        job.working_dir = os.popen(
+            'find ' + FOLDER + ' -maxdepth 1 -type d -not -path ' + FOLDER + '/__pycache__ -not -path ' + FOLDER + '') \
+                              .read()[0:-1] + '/'
+        job.run_make(mandatory=True)
 
     server = Jenkins(JENKINS_URL, JENKINS_USERNAME, JENKINS_SECRET)
     create_pipeline(server)
@@ -83,11 +97,15 @@ def my_init(job):
     global COURSE
     global ASSIGNMENT
     global FOLDER
+    global COURSE_AND_ASSIGNMENT
+    global JOB_NAME
     if not DEBUG:
         USERNAME = job.submitter_student_id
         COURSE = job.course
         ASSIGNMENT = job.assignment
         FOLDER = job.working_dir
+        COURSE_AND_ASSIGNMENT = COURSE + '-' + ASSIGNMENT
+        JOB_NAME = COURSE + '-' + ASSIGNMENT + '-' + USERNAME
 
         os.system('scp -i /ssh/key -r ' + FOLDER + ' jenkins-ssh@jenkins-ssh:/opensubmit')
         os.system('chmod -R 777 ' + FOLDER)
@@ -97,9 +115,14 @@ def my_init(job):
 
 
 def create_pipeline(jenkins_server):
-    data = request.urlopen(
-        PIPELINE_BASE_URL + parse.quote(COURSE) + '/' + parse.quote(ASSIGNMENT) + '.xml')
-    xml_file = data.read().decode("utf-8").replace('{USERNAME}', USERNAME)
+    # data = request.urlopen(
+    #    PIPELINE_BASE_URL + parse.quote(COURSE) + '/' + parse.quote(ASSIGNMENT) + '.xml')
+    data = request.urlopen(PIPELINE_CONFIG_URL)
+    xml_file = data.read().decode("utf-8")
+    xml_file = xml_file.replace('{USERNAME}', USERNAME)
+    xml_file = xml_file.replace('{GIT_REPO}', PIPELINE_REPO)
+    xml_file = xml_file.replace('{GIT_JENKINSFILE_PATH}',
+                                PIPELINE_BASE + '/' + COURSE + '/' + ASSIGNMENT + '/' + JENKINSFILE_NAME)
 
     try:
         jenkins_server.create_job(JOB_NAME, xml_file)

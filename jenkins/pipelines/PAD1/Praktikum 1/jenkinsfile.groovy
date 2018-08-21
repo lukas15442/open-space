@@ -16,6 +16,8 @@ node {
                 clang++ -O0 -g -Wall -Wextra -Weverything -o binary *.cpp
             '''
         )
+    }
+    stage('Collect warnings') {
         warnings(
                 canComputeNew: false,
                 canResolveRelativePaths: false,

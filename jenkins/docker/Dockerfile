@@ -3,7 +3,8 @@ FROM openshift/jenkins-2-centos7
 USER root
 
 RUN yum install -y epel-release
-RUN yum install -y gcc gcc-c++ kernel-devel make valgrind clang clang-analyzer openssh-server passwd ed cppunit
+RUN yum install -y gcc gcc-c++ kernel-devel make valgrind clang clang-analyzer openssh-server passwd ed cppunit \
+                    cppunit-devel cmake
 
 ADD ./sshd_config /etc/ssh/sshd_config
 RUN chmod 775 /var/run

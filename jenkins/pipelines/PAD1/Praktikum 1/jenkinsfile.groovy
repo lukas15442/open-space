@@ -1,11 +1,18 @@
 node {
-    stage('Build') {
+    stage('Copy files') {
         sh(
             '''
                 chmod -Rf 777 ./
                 rm -rf *
-                cp -r "\\$(find \\$folder -maxdepth 1 -type d -not -path \\$folder/__pycache__ -not -path \\$folder)"/* ./
-                rm -rf \f$folder
+                ls -la
+                cp -r "\$(find \$folder -maxdepth 1 -type d -not -path \$folder/__pycache__ -not -path \$folder)"/* ./
+                rm -rf \$folder
+            '''
+        )
+    }
+    stage('Build') {
+        sh(
+            '''
                 clang++ -O0 -g -Wall -Wextra -Weverything -o binary *.cpp
             '''
         )

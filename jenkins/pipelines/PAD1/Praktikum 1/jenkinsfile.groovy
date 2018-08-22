@@ -12,7 +12,7 @@ node {
     stage('Build') {
         sh(
                 '''
-                clang++ -O0 -g -Wall -Wextra -Weverything -o binary *.cpp
+                clang++ -std=c++11 -O0 -g -Wall -Wextra -Weverything -o binary *.cpp
             '''
         )
     }

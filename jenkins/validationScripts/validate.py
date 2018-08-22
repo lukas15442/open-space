@@ -15,18 +15,8 @@ PIPELINE_BASE = 'jenkins/pipelines'
 JENKINSFILE_NAME = 'jenkinsfile.groovy'
 
 JENKINS_URL = 'https://jenkins-open-submit.apps.ocp.fbi.h-da.de'
-JENKINS_USERNAME = 'l.koehler'
-JENKINS_SECRET = 'a34b91cdeaa9ec91d0ac39c01024005f'
-
-
-
-
-
-
-
-
-
-
+JENKINS_USERNAME = 'api'
+JENKINS_SECRET = 'b2607390ba3f4c7fc63f039d9987c2b7'
 
 # Parameter that will be filled when debug is off
 USERNAME = 'istlukoeh'

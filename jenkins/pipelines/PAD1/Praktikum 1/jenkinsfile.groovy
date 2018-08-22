@@ -1,6 +1,7 @@
 node {
     stage('Copy files') {
-        sh('''
+        sh(
+                '''
                 chmod -Rf 777 ./
                 rm -rf *
                 ls -la
@@ -69,7 +70,8 @@ node {
     }
     stage('Pull and compile cppunit tests') {
         git(
-                'https://github.com/lukas15442/open-submit-cppunit-test.git'
+                credentialsId: 'codegit',
+                url: 'https://code.fbi.h-da.de/SS18-REP-PAD2/UnitTests/Praktikum1.git'
         )
         sh('''
                 cmake ./

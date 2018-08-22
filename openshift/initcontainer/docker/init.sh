@@ -101,6 +101,19 @@ export JENKINS_CRYPT_SECRET=$(curl -k --user 'admin:admin' --data-urlencode \
   "script=pw='$JENKINS_SECRET'; passwd_enc=hudson.util.Secret.fromString(pw).getEncryptedValue(); println(passwd_enc)" \
    https://$JENKINS_DOMAIN/scriptText)
 
+curl -k --user 'admin:admin' --data-urlencode \
+  "script=import jenkins.model.*; import hudson.security.*; def instance = Jenkins.getInstance(); \
+          def hudsonRealm = new HudsonPrivateSecurityRealm(false); hudsonRealm.createAccount('api', '$API_PASSWORD'); \
+          instance.setSecurityRealm(hudsonRealm); instance.save()" \
+   https://$JENKINS_DOMAIN/scriptText
+
+export JENKINS_API_TOKEN=$(curl -k --user 'admin:admin' --data-urlencode \
+  "script=import jenkins.security.*; User u = User.get('api'); ApiTokenProperty t = u.getProperty(ApiTokenProperty.class); \
+          def token = t.getApiToken(); println (token)" \
+   https://$JENKINS_DOMAIN/scriptText)
+
+oc set env deploymentconfig/exec JENKINS_API_TOKEN=$JENKINS_API_TOKEN
+
 wget $GIT_URL/jenkins/config.xml
 
 sed -i "s/{USERNAME}/$JENKINS_ADMIN/g" config.xml
@@ -123,7 +136,7 @@ if [ ! -z "${UPDATE_LIST}" ]; then
 fi
 
 java -jar jenkins-cli.jar -auth admin:admin -noCertificateCheck \
-      -s https://$JENKINS_DOMAIN install-plugin oic-auth valgrind warnings clang-scanbuild cppcheck;
+      -s https://$JENKINS_DOMAIN install-plugin oic-auth valgrind warnings clang-scanbuild cppcheck xunit git;
 
 echo " \
     \cp config.xml /var/lib/jenkins/ && \

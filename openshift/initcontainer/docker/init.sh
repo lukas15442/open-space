@@ -103,11 +103,19 @@ export JENKINS_CRYPT_SECRET=$(curl -k --user 'admin:admin' --data-urlencode \
 
 curl -k --user 'admin:admin' --data-urlencode \
   "script=import jenkins.model.*; import hudson.security.*; def instance = Jenkins.getInstance(); \
-          def hudsonRealm = new HudsonPrivateSecurityRealm(false); hudsonRealm.createAccount('api', '$API_PASSWORD'); \
+          def hudsonRealm = new HudsonPrivateSecurityRealm(false); hudsonRealm.createAccount('api', '$JENKINS_API_PASSWORD'); \
           instance.setSecurityRealm(hudsonRealm); instance.save()" \
    https://$JENKINS_DOMAIN/scriptText
 
-export JENKINS_API_TOKEN=$(curl -k --user 'admin:admin' --data-urlencode \
+curl -k --user 'admin:admin' --data-urlencode \
+  "script=import jenkins.model.*; import hudson.security.*; def instance = Jenkins.getInstance(); \
+          def strategy = new GlobalMatrixAuthorizationStrategy(); \
+          strategy.add(Jenkins.ADMINISTER, 'api'); \
+          strategy.add(Jenkins.ADMINISTER, 'admin'); \
+          instance.setAuthorizationStrategy(strategy)" \
+   https://$JENKINS_DOMAIN/scriptText
+
+export JENKINS_API_TOKEN=$(curl -k --user "api:$JENKINS_API_PASSWORD" --data-urlencode \
   "script=import jenkins.security.*; User u = User.get('api'); ApiTokenProperty t = u.getProperty(ApiTokenProperty.class); \
           def token = t.getApiToken(); println (token)" \
    https://$JENKINS_DOMAIN/scriptText)

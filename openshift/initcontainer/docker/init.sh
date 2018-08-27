@@ -64,9 +64,6 @@ export OPENSUBMIT_ID=$(curl -k "$SSO_URL/auth/admin/realms/hda/clients" \
 export OPENSUBMIT_SECRET=$(curl -k "$SSO_URL/auth/admin/realms/hda/clients/$OPENSUBMIT_ID/client-secret" \
   -H "Authorization: Bearer $TKN" | jq -r ".value")
 
-oc project $MY_POD_NAMESPACE && \
-oc set env deploymentconfig/web OPENSUBMIT_LOGIN_OPENSHIFT_SSO_OIDC_RP_CLIENT_SECRET=$OPENSUBMIT_SECRET
-
 # make admin in opensubmit
 psql postgresql://opensubmit:opensubmit@db/opensubmit << EOF
      \set jenkinsAdmin `echo "$JENKINS_ADMIN"`
@@ -120,8 +117,6 @@ export JENKINS_API_TOKEN=$(curl -k --user "api:$JENKINS_API_PASSWORD" --data-url
           def token = t.getApiToken(); println (token)" \
    https://$JENKINS_DOMAIN/scriptText)
 
-oc set env deploymentconfig/exec JENKINS_API_TOKEN=$JENKINS_API_TOKEN
-
 wget $GIT_URL/jenkins/config.xml
 
 sed -i "s/{USERNAME}/$JENKINS_ADMIN/g" config.xml
@@ -167,3 +162,6 @@ oc cp key.pub $JENKINS_POD_NAME:/var/lib/jenkins/ssh/authorized_keys
 java -jar jenkins-cli.jar -auth admin:admin -noCertificateCheck \
   -s https://$JENKINS_DOMAIN safe-restart;
 
+oc project $MY_POD_NAMESPACE && \
+oc set env deploymentconfig/web OPENSUBMIT_LOGIN_OPENSHIFT_SSO_OIDC_RP_CLIENT_SECRET=$OPENSUBMIT_SECRET && \
+oc set env deploymentconfig/exec JENKINS_API_TOKEN=$JENKINS_API_TOKEN

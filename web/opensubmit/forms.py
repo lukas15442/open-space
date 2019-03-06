@@ -1,6 +1,5 @@
 from django import forms
 from django.contrib.auth.models import User
-
 from .models import Submission, StudyProgram
 
 
@@ -15,6 +14,7 @@ def validate_authors(authors, assignment):
 
 
 class SubmissionWithGroups(forms.ModelForm):
+
     class Meta:
         model = Submission
         fields = ('authors', 'notes')
@@ -49,6 +49,7 @@ class SubmissionWithGroups(forms.ModelForm):
 
 
 class SubmissionWithoutGroups(forms.ModelForm):
+
     class Meta:
         model = Submission
         fields = ('notes',)
@@ -81,6 +82,7 @@ class SubmissionWithGroupsWithoutFileForm(SubmissionWithGroups):
 
 
 class SubmissionFileUpdateForm(forms.ModelForm):
+
     attachment = forms.FileField()
 
     class Meta:
@@ -105,9 +107,9 @@ class SettingsForm(forms.ModelForm):
     email = forms.CharField(max_length=75, required=True)
     first_name = forms.CharField(max_length=30, required=True)
     last_name = forms.CharField(max_length=30, required=True)
-    username = forms.CharField(max_length=30, required=True, disabled=True)
+    username = forms.CharField(max_length=30, required=True)
     student_id = forms.CharField(
-        max_length=30, required=False, label="Student ID (optional)", disabled=True)
+        max_length=30, required=False, label="Student ID (optional)")
     study_program = forms.ModelChoiceField(
         queryset=StudyProgram.objects, required=False)
 
@@ -116,7 +118,7 @@ class SettingsForm(forms.ModelForm):
         fields = ('username', 'first_name', 'last_name', 'email')
 
     def save(self, commit=True):
-        # self.instance.profile.student_id = self.cleaned_data['student_id']
+        self.instance.profile.student_id = self.cleaned_data['student_id']
         self.instance.profile.study_program = self.cleaned_data['study_program']
         self.instance.profile.save()
         return super(SettingsForm, self).save(commit=commit)
@@ -129,8 +131,8 @@ class SettingsForm(forms.ModelForm):
     def clean_study_program(self):
         data = self.cleaned_data['study_program']
         if data is None and self.instance.profile.study_program is None and StudyProgram.objects.count() > 1:
-            raise forms.ValidationError(
-                "Please select your study program.")
+                raise forms.ValidationError(
+                    "Please select your study program.")
         return data
 
 
@@ -138,3 +140,4 @@ class MailForm(forms.Form):
     subject = forms.CharField(max_length=50, required=True)
     message = forms.CharField(
         widget=forms.Textarea, required=True, initial="Dear #FIRSTNAME# #LASTNAME#, ")
+

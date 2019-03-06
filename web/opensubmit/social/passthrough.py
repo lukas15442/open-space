@@ -16,11 +16,15 @@
     with the only exception that the auth_url redirect is no longer needed.
 '''
 
+import logging
 from social_core.backends.base import BaseAuth
 from django.core.exceptions import PermissionDenied
-from opensubmit import settings
+from django.conf import settings
+from django.urls import get_script_prefix
 
 SESSION_VAR = 'passthrough_auth_data_' + settings.SECRET_KEY
+
+logger = logging.getLogger('OpenSubmit')
 
 
 class PassThroughAuth(BaseAuth):
@@ -28,13 +32,14 @@ class PassThroughAuth(BaseAuth):
 
     def auth_url(self):
         """Must return redirect URL to auth provider."""
-        return '/complete/%s/' % self.name
+        return get_script_prefix() + 'complete/%s/' % self.name
 
     def auth_complete(self, *args, **kwargs):
         """Completes loging process, must return user instance"""
         if SESSION_VAR not in self.strategy.request.session:
             # This is the only protection layer when people
             # go directly to the passthrough login view.
+            logger.warn("Auth data for passthrough provider not found in session. Raising 404.")
             raise PermissionDenied
         auth_data = self.strategy.request.session[SESSION_VAR]
         kwargs.update({'response': auth_data, 'backend': self})

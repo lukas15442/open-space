@@ -1,13 +1,102 @@
+# generall informations
+
 apiVersion: v1
 kind: Template
 metadata:
   name: openspace-template
   annotations:
-    openshift.io/display-name: "OpenSpace" 
-    description: "OpenSpace for PAD1 and PAD2"
-    iconClass: "icon-hdalogo"
-    tags: "hda,hdapad" 
+    openshift.io/display-name: OpenSpace
+    description: OpenSpace for PAD1 and PAD2
+    iconClass: icon-hdalogo
+    tags: hda,hdapad
 objects:
+
+# init container definitions
+
+- apiVersion: v1
+  kind: DeploymentConfig
+  metadata:
+    name: initcontainer
+  spec:
+    replicas: 0
+    selector:
+      app: initcontainer
+      deploymentconfig: initcontainer
+    template:
+      metadata:
+        labels:
+          app: initcontainer
+          deploymentconfig: initcontainer
+      spec:
+        containers:
+        - env:
+          - name: MY_POD_NAMESPACE
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.namespace
+          - name: JENKINS_API_PASSWORD
+            value: ${JENKINS_API_PASSWORD}
+          - name: ADMIN_FIRST_NAME
+            value: ${ADMIN_FIRST_NAME}
+          - name: ADMIN_LAST_NAME
+            value: ${ADMIN_LAST_NAME}
+          - name: OPENSUBMIT_ADMIN_MAIL
+            value: ${OPENSUBMIT_ADMIN_MAIL}
+          - name: JENKINS_ADMIN
+            value: ${JENKINS_ADMIN}
+          - name: OC_URL
+            value: ${OC_URL}
+          - name: WEB_DOMAIN
+            value: web-$(MY_POD_NAMESPACE).${DOMAIN}
+          - name: JENKINS_DOMAIN
+            value: jenkins-$(MY_POD_NAMESPACE).${DOMAIN}
+          - name: OPENSUBMIT_LOGIN_GITLAB_JENKINS_OAUTH_KEY
+            value: ${OPENSUBMIT_LOGIN_GITLAB_JENKINS_OAUTH_KEY}
+          - name: OPENSUBMIT_LOGIN_GITLAB_JENKINS_OAUTH_SECRET
+            value: ${OPENSUBMIT_LOGIN_GITLAB_JENKINS_OAUTH_SECRET}
+          image: ' '
+          name: initcontainer
+    test: false
+    triggers:
+    - type: ConfigChange
+    - imageChangeParams:
+        automatic: true
+        containerNames:
+        - initcontainer
+        from:
+          kind: ImageStreamTag
+          name: initcontainer:latest
+      type: ImageChange
+
+- apiVersion: v1
+  kind: ImageStream
+  metadata:
+    name: initcontainer
+  spec:
+    tags:
+    - annotations: null
+      from:
+        kind: DockerImage
+        name: koehlerlukas/opensubmit-initcontainer:latest
+      name: latest
+
+# opensubmit definitions
+
+- kind: Route
+  apiVersion: v1
+  metadata:
+    name: web
+    annotations:
+      template.openshift.io/expose-uri: 'http://{.spec.host}{.spec.path}'
+      haproxy.router.openshift.io/timeout: 4m
+  spec:
+    to:
+      kind: Service
+      name: web
+    tls:
+      termination: edge
+      insecureEdgeTerminationPolicy: Redirect
+
 
 - apiVersion: v1
   kind: PersistentVolumeClaim
@@ -24,7 +113,7 @@ objects:
 - apiVersion: v1
   kind: PersistentVolumeClaim
   metadata:
-    name: data-volume
+    name: opensubmit-volume
   spec:
     accessModes:
     - ReadWriteOnce
@@ -42,8 +131,8 @@ objects:
     - annotations: null
       from:
         kind: DockerImage
-        name: koehlerlukas/opensubmit-exec:${DOCKER_EXEC_VERSION}
-      name: ${DOCKER_EXEC_VERSION}
+        name: koehlerlukas/opensubmit-exec:latest
+      name: latest
 
 - apiVersion: v1
   kind: ImageStream
@@ -54,15 +143,15 @@ objects:
     - annotations: null
       from:
         kind: DockerImage
-        name: koehlerlukas/opensubmit-web:${DOCKER_WEB_VERSION}
-      name: ${DOCKER_WEB_VERSION}
+        name: koehlerlukas/opensubmit-web:latest
+      name: latest
 
 - apiVersion: v1
   kind: DeploymentConfig
   metadata:
     name: db
   spec:
-    replicas: 1
+    replicas: 0
     selector:
       app: db
       deploymentconfig: db
@@ -73,34 +162,44 @@ objects:
           deploymentconfig: db
       spec:
         containers:
-          - env:
-              - name: POSTGRESQL_USER
-                value: opensubmit
-              - name: POSTGRESQL_PASSWORD
-                value: opensubmit
-              - name: POSTGRESQL_DATABASE
-                value: opensubmit
-            image: >-
-              docker.io/centos/postgresql-96-centos7@sha256:63cd5c029def2047a9c8c35f578bb627e2c0eda6d268d3a815d685aa2c127d48
-            name: db
-            ports:
-              - containerPort: 5432
-                protocol: TCP
-            volumeMounts:
-              - mountPath: /var/lib/pgsql/data
-                name: postgres-volume
+        - env:
+          - name: POSTGRESQL_USER
+            value: opensubmit
+          - name: POSTGRESQL_PASSWORD
+            value: opensubmit
+          - name: POSTGRESQL_DATABASE
+            value: opensubmit
+          image: ' '
+          name: db
+          ports:
+          - containerPort: 5432
+            protocol: TCP
+          volumeMounts:
+          - mountPath: /var/lib/pgsql/data
+            name: postgres-volume
         volumes:
-          - name: postgres-volume
-            persistentVolumeClaim:
-              claimName: postgres-volume
+        - name: postgres-volume
+          persistentVolumeClaim:
+            claimName: postgres-volume
     test: false
+    triggers:
+    - type: ConfigChange
+    - imageChangeParams:
+        automatic: true
+        containerNames:
+        - db
+        from:
+          kind: ImageStreamTag
+          namespace: openshift
+          name: postgresql:9.6
+      type: ImageChange
 
 - apiVersion: v1
   kind: DeploymentConfig
   metadata:
     name: web
   spec:
-    replicas: 1
+    replicas: 0
     selector:
       app: web
       deploymentconfig: web
@@ -112,6 +211,12 @@ objects:
       spec:
         containers:
         - env:
+          - name: MY_POD_NAMESPACE
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.namespace
+          - name: OPENSUBMIT_SERVER_URL
+            value: https://web-$(MY_POD_NAMESPACE).${DOMAIN}
           - name: OPENSUBMIT_DATABASE_ENGINE
             value: postgresql
           - name: OPENSUBMIT_DATABASE_HOST
@@ -122,28 +227,36 @@ objects:
             value: opensubmit
           - name: OPENSUBMIT_DATABASE_USER
             value: opensubmit
-          - name: OPENSUBMIT_DEBUG
-            value: "0"
-          - name: OPENSUBMIT_LOGIN_DEMO
-            value: "1"
           - name: OPENSUBMIT_SERVER_HOSTALIASES
             value: web
           - name: OPENSUBMIT_SERVER_MEDIAROOT
             value: /data/media/
-          - name: OPENSUBMIT_SERVER_URL
-            value: http://localhost:8000
           - name: OPENSHIFT_APP_DNS
             value: '*'
+          - name: OPENSUBMIT_LOGIN_DEMO
+            value: 'False'
+          - name: OPENSUBMIT_DEBUG
+            value: 'False'
+          - name: OPENSUBMIT_LOGIN_GITLAB_DESCRIPTION
+            value: ${OPENSUBMIT_LOGIN_GITLAB_DESCRIPTION}
+          - name: OPENSUBMIT_LOGIN_GITLAB_URL
+            value: ${OPENSUBMIT_LOGIN_GITLAB_URL}
+          - name: OPENSUBMIT_LOGIN_GITLAB_OAUTH_KEY
+            value: ${OPENSUBMIT_LOGIN_GITLAB_OPENSUBMIT_OAUTH_KEY}
+          - name: OPENSUBMIT_LOGIN_GITLAB_OAUTH_SECRET
+            value: ${OPENSUBMIT_LOGIN_GITLAB_OPENSUBMIT_OAUTH_SECRET}
+          - name: OPENSUBMIT_LOGIN_OPENID_PROVIDER
+            value: ''
           image: ' '
           name: web
           ports:
           volumeMounts:
           - mountPath: /data
-            name: data-volume
+            name: opensubmit-volume
         volumes:
-        - name: data-volume
+        - name: opensubmit-volume
           persistentVolumeClaim:
-            claimName: data-volume
+            claimName: opensubmit-volume
     test: false
     triggers:
     - type: ConfigChange
@@ -153,7 +266,7 @@ objects:
         - web
         from:
           kind: ImageStreamTag
-          name: web:${DOCKER_WEB_VERSION}
+          name: web:latest
       type: ImageChange
 
 - apiVersion: v1
@@ -177,6 +290,13 @@ objects:
             value: http://web:8000
           image: ' '
           name: exec
+          volumeMounts:
+          - mountPath: /ssh
+            name: opensubmit-exec-ssh-volume
+        volumes:
+        - name: opensubmit-exec-ssh-volume
+          persistentVolumeClaim:
+            claimName: opensubmit-exec-ssh-volume
     test: false
     triggers:
     - type: ConfigChange
@@ -186,8 +306,20 @@ objects:
         - exec
         from:
           kind: ImageStreamTag
-          name: exec:${DOCKER_EXEC_VERSION}
+          name: exec:latest
       type: ImageChange
+
+- apiVersion: v1
+  kind: PersistentVolumeClaim
+  metadata:
+    name: opensubmit-exec-ssh-volume
+  spec:
+    accessModes:
+    - ReadWriteOnce
+    resources:
+      requests:
+        storage: 10Mi
+  status: {}
 
 - apiVersion: v1
   kind: Service
@@ -197,10 +329,10 @@ objects:
     name: db
   spec:
     ports:
-      - name: 5432-tcp
-        port: 5432
-        protocol: TCP
-        targetPort: 5432
+    - name: db-5432
+      port: 5432
+      protocol: TCP
+      targetPort: 5432
     selector:
       deploymentconfig: db
 
@@ -212,31 +344,257 @@ objects:
     name: web
   spec:
     ports:
-    - name: "8000"
+    - name: opensubmit-web
       port: 8000
-      targetPort: 80
+      protocol: TCP
+      targetPort: 8080
     selector:
       app: web
 
+# Jenkins definitions
+
+- apiVersion: v1
+  kind: ImageStream
+  metadata:
+    name: jenkins
+  spec:
+    tags:
+    - annotations: null
+      from:
+        kind: DockerImage
+        name: koehlerlukas/opensubmit-jenkins:latest
+      name: latest
+
+- kind: Route
+  apiVersion: v1
+  metadata:
+    name: jenkins
+    annotations:
+      template.openshift.io/expose-uri: 'http://{.spec.host}{.spec.path}'
+      haproxy.router.openshift.io/timeout: 4m
+  spec:
+    to:
+      kind: Service
+      name: jenkins
+    tls:
+      termination: edge
+      insecureEdgeTerminationPolicy: Redirect
+
+- kind: PersistentVolumeClaim
+  apiVersion: v1
+  metadata:
+    name: jenkins-volume
+  spec:
+    accessModes:
+    - ReadWriteOnce
+    resources:
+      requests:
+        storage: ${JENKINS_VOLUME_CAPACITY}Gi
+
+- kind: DeploymentConfig
+  apiVersion: v1
+  metadata:
+    name: jenkins
+    annotations:
+      template.alpha.openshift.io/wait-for-ready: 'true'
+  spec:
+    triggers:
+    - type: ImageChange
+      imageChangeParams:
+        automatic: true
+        containerNames:
+        - jenkins
+        from:
+          kind: ImageStreamTag
+          name: jenkins:latest
+        lastTriggeredImage:
+    - type: ConfigChange
+    replicas: 0
+    selector:
+      name: jenkins
+    template:
+      metadata:
+        labels:
+          name: jenkins
+      spec:
+        serviceAccountName: jenkins
+        containers:
+        - name: jenkins
+          image: ' '
+          env:
+          - name: OPENSHIFT_ENABLE_OAUTH
+            value: 'false'
+          - name: OPENSHIFT_ENABLE_REDIRECT_PROMPT
+            value: 'false'
+          - name: DISABLE_ADMINISTRATIVE_MONITORS
+            value: 'false'
+          - name: KUBERNETES_MASTER
+            value: https://kubernetes.default:443
+          - name: KUBERNETES_TRUST_CERTIFICATES
+            value: 'true'
+          - name: JENKINS_PASSWORD
+            value: admin
+          - name: ENABLE_FATAL_ERROR_LOG_FILE
+            value: 'false'
+          volumeMounts:
+            - name: jenkins-volume
+              mountPath: /var/lib/jenkins
+          terminationMessagePath: /dev/termination-log
+          securityContext:
+            capabilities: {}
+            privileged: false
+        volumes:
+        - name: jenkins-volume
+          persistentVolumeClaim:
+            claimName: jenkins-volume
+        restartPolicy: Always
+        dnsPolicy: ClusterFirst
+
+- kind: ServiceAccount
+  apiVersion: v1
+  metadata:
+    name: jenkins
+    annotations:
+      serviceaccounts.openshift.io/oauth-redirectreference.jenkins: '{"kind":"OAuthRedirectReference","apiVersion":"v1","reference":{"kind":"Route","name":"jenkins"}}'
+
+- kind: RoleBinding
+  apiVersion: v1
+  metadata:
+    name: jenkins_edit
+  groupNames:
+  subjects:
+  - kind: ServiceAccount
+    name: jenkins
+  roleRef:
+    name: edit
+
+- kind: Service
+  apiVersion: v1
+  metadata:
+    name: jenkins-jnlp
+  spec:
+    ports:
+    - name: agent
+      protocol: TCP
+      port: 50000
+      targetPort: 50000
+      nodePort: 0
+    selector:
+      name: jenkins
+    type: ClusterIP
+    sessionAffinity: None
+
+- kind: Service
+  apiVersion: v1
+  metadata:
+    name: jenkins-ssh
+  spec:
+    ports:
+    - name: agent
+      protocol: TCP
+      port: 22
+      targetPort: 2222
+    selector:
+      name: jenkins
+
+- kind: Service
+  apiVersion: v1
+  metadata:
+    name: jenkins
+    annotations:
+      service.alpha.openshift.io/dependencies: '[{"name": "jenkins-jnlp", "namespace": "", "kind": "Service"}]'
+      service.openshift.io/infrastructure: 'true'
+  spec:
+    ports:
+    - name: web
+      protocol: TCP
+      port: 80
+      targetPort: 8080
+      nodePort: 0
+    selector:
+      name: jenkins
+    type: ClusterIP
+    sessionAffinity: None
+
 parameters:
-- description: Postgres Volume Size in GB
+# global parameter
+- required: true
+  name: DOMAIN
+  displayName: route domain
+
+- displayName: openshift url
+  required: true
+  name: OC_URL
+
+- displayName: admin username
+  description: This user will be admin
+  required: true
+  name: JENKINS_ADMIN
+
+- displayName: admin first name
+  description: This user will be admin
+  required: true
+  name: ADMIN_FIRST_NAME
+
+- displayName: admin last name
+  description: This user will be admin
+  required: true
+  name: ADMIN_LAST_NAME
+
+- displayName: admin mail
+  description: This user will be admin
+  required: true
+  name: OPENSUBMIT_ADMIN_MAIL
+
+- displayName: gitlab description
+  required: true
+  value: 'Hochschule Darmstadt'
+  name: OPENSUBMIT_LOGIN_GITLAB_DESCRIPTION
+
+- displayName: gitlab url
+  required: true
+  name: OPENSUBMIT_LOGIN_GITLAB_URL
+
+- displayName: gitlab opensubmit key
+  required: true
+  name: OPENSUBMIT_LOGIN_GITLAB_OPENSUBMIT_OAUTH_KEY
+
+- displayName: gitlab opensubmit secret
+  required: true
+  name: OPENSUBMIT_LOGIN_GITLAB_OPENSUBMIT_OAUTH_SECRET
+
+- displayName: gitlab jenkins key
+  required: true
+  name: OPENSUBMIT_LOGIN_GITLAB_JENKINS_OAUTH_KEY
+
+- displayName: gitlab jenkins secret
+  required: true
+  name: OPENSUBMIT_LOGIN_GITLAB_JENKINS_OAUTH_SECRET
+
+# opensubmit parameter
+- displayName: opensubmit postgres volume size in GB
   from: '[0-9]{4}'
-  generate: expression
   value: '10'
+  required: true
   name: POSTGRES_SIZE
 
-- description: Web Volume Size in GB
+- displayName: opensubmit-web volume size in GB
   from: '[0-9]{4}'
-  generate: expression
+  required: true
   value: '10'
   name: WEB_VOLUME_SIZE
 
-- description: open-space web version
-  generate: expression
-  value: '0.7.8'
-  name: DOCKER_WEB_VERSION
+# jenkins parameter
+- name: JENKINS_VOLUME_CAPACITY
+  displayName: jenkins volume size in GB
+  value: '10'
+  required: true
 
-- description: open-space exec version
+- displayName: Jenkins API Password
+  name: JENKINS_API_PASSWORD
+  from: '[a-zA-Z0-9]{8}'
   generate: expression
-  value: '0.7.8'
-  name: DOCKER_EXEC_VERSION
+  required: true
+
+
+

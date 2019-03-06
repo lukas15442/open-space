@@ -1,6 +1,68 @@
 Changelog
 #########
 
+
+.. _v0.7.17:
+
+v0.7.17 Release
+===============
+
+This is a stable release that brings the following updates:
+
+- The URL in student notification emails was broken for OpenSubmit installations in a sub-directory (:issue:`239`). Thanks to :user:`johenning` for the patch.
+- The Docker images for executors were not running their cron job, and they were not showing log output as intended. This is fixed now. Thanks to :user:`antongulenko` for the report and suggestions.
+
+If you upgrade from a v0.6.x release, make sure that you read the :ref:`v0.7.0 release notes <v0.7.0>`!
+
+.. _v0.7.16:
+
+v0.7.16 Release
+===============
+
+This is a stable release that brings the following updates:
+
+- Secrets are no longer completely dumped on *opensubmit-web dumpconfig*.
+- The Docker startup now dumps the effective config by default.
+
+If you upgrade from a v0.6.x release, make sure that you read the :ref:`v0.7.0 release notes <v0.7.0>`!
+
+.. _v0.7.15:
+
+v0.7.15 Release
+===============
+
+This is a stable release that brings the following updates:
+
+- The configured site admin now automatically becomes an OpenSubmit admin on first login with a matching eMail address.
+
+If you upgrade from a v0.6.x release, make sure that you read the :ref:`v0.7.0 release notes <v0.7.0>`!
+
+.. _v0.7.14:
+
+v0.7.14 Release
+===============
+
+This is a stable release that brings the following updates:
+
+- OpenSubmit now supports :ref:`GitLab authentication <gitlab>`.
+- All login providers can now be restricted by providing a user whitelist. Please check the :ref:`configuration docs <config_web>` for details.
+- There is a :ref:`new management command <troubleshooting>` that allows to check the run-time configuration of OpenSubmit, mainly for debugging purposes.
+- The :ref:`administration docs <administrator>` docs are heavily extended and re-organized. 
+- LTI credentials are now generated automatically. 
+- There are now separate LTI links for each assignment, so that they can be directly integrated into your learning management system.
+- When users access OpenSubmit through LTI, the optics now change accordingly. All interaction is reduced to a single view, so that submission creation, submission detail checking and withdrawal all happens under the same URL.
+
+If you upgrade from a v0.6.x release, make sure that you read the :ref:`v0.7.0 release notes <v0.7.0>`!
+
+.. _v0.7.9:
+
+v0.7.9 Release
+==============
+
+This is a stable release that brings :ref:`OpenID Connect support <oidc>` for the authentication. Thanks to :user:`tzwenn` for the contribution!
+
+If you upgrade from a v0.6.x release, make sure that you read the :ref:`v0.7.0 release notes <v0.7.0>`!
+
 .. _v0.7.8:
 
 v0.7.8 Release
@@ -29,7 +91,7 @@ Here is the list of changes:
 
 - We now offer Docker images for the `web application <https://hub.docker.com/r/troeger/opensubmit-web/>`_ and the `executor <https://hub.docker.com/r/troeger/opensubmit-exec/>`_. The :ref:`administrator` was updated accordingly.
 - We now offer a demo installation at http://www.demo.open-submit.org (:issue:`98`). This lead to a new configuration option called ``DEMO``, which allows to enable passthrough login buttons on the landing page.
-- We now offer a `Terraform <http://terraform.io>`_-based installation of OpenSubmit on cloud computing resources. Check the :ref:`Terraform section in the admin manual <terraform>` for further details.
+- We now offer a `Terraform <http://terraform.io>`_-based installation of OpenSubmit on cloud computing resources. Check the :ref:`Terraform` section in the admin manual for further details.
 - The traditional ``opensubmit-web configure`` call is now split up into three explicit commands:
 
   ``opensubmit-web configcreate``

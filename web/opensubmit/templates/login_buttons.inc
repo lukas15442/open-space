@@ -1,12 +1,14 @@
 {% load projecttags %}
 
 {% setting "LOGIN_GOOGLE" as login_google %}
-{% setting "LOGIN_OPENID" as login_openid %}
-{% setting "LOGIN_OPENSHIFT_SSO" as login_openshift_sso %}
-{% setting "LOGIN_OPENSHIFT_SSO_DESCRIPTION" as login_openshift_sso_description %}
 {% setting "LOGIN_TWITTER" as login_twitter %}
 {% setting "LOGIN_GITHUB" as login_github %}
+{% setting "LOGIN_GITLAB" as login_gitlab %}
+{% setting "LOGIN_GITLAB_DESCRIPTION" as login_gitlab_description %}
+{% setting "LOGIN_OPENID" as login_openid %}
 {% setting "LOGIN_DESCRIPTION" as login_description %}
+{% setting "LOGIN_OIDC" as login_oidc %}
+{% setting "LOGIN_OIDC_DESCRIPTION" as login_oidc_description %}
 {% setting "LOGIN_SHIB" as login_shib %}
 {% setting "LOGIN_SHIB_DESCRIPTION" as login_shib_description %}
 {% setting "DEMO" as demo %}
@@ -33,12 +35,17 @@
             {% endif %}
             {% if login_openid %}
             <div class="col-md-3">
-                <a href="{% url 'oidc_authentication_init' %}" class="btn-auth btn-openid"><b>{{ login_description }}</b></a>
+                <a href="{% url 'social:begin' 'openid' %}?next={{ next }}" class="btn-auth btn-openid"><b>{{ login_description }}</b></a>
             </div>
             {% endif %}
-            {% if login_openshift_sso %}
+            {% if login_oidc %}
             <div class="col-md-3">
-                <a href="{% url 'oidc_authentication_init' %}" class="btn-auth btn-openid"><b>{{ login_openshift_sso_description }}</b></a>
+                <a href="{% url 'social:begin' 'oidc' %}?next={{ next }}" class="btn-auth btn-openid"><b>{{ login_oidc_description }}</b></a>
+            </div>
+            {% endif %}
+            {% if login_gitlab %}
+            <div class="col-md-3">
+                <a href="{% url 'social:begin' 'gitlab' %}?next={{ next }}" class="btn-auth btn-github"><b>{{ login_gitlab_description }}</b></a>
             </div>
             {% endif %}
             {% if login_shib %}

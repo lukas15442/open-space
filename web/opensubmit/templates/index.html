@@ -3,33 +3,33 @@
 {% load projecttags %}
 
 {% block scripts %}
-    {{ block.super }}
+{{ block.super }}
 {% endblock %}
 
 {% block style %}
-    {{ block.super }}
-    @import url("{{ STATIC_URL }}social-buttons/auth-buttons.css");
+{{ block.super }}
+@import url("{{ STATIC_URL }}social-buttons/auth-buttons.css");
 {% endblock %}
 
 {% block docready %}
-    {{ block.super }}
+{{ block.super }}
 {% endblock %}
 
-{% block navigation_home %}hidden{% endblock %}
-{% block navigation_archive %}hidden{% endblock %}
-{% block navigation_settings %}hiddelogin_descriptionn{% endblock %}
-{% block navigation_courses %}hidden{% endblock %}
-{% block navigation_logout %}hidden{% endblock %}
+{%block navigation_home %}hidden{% endblock %}
+{%block navigation_archive %}hidden{% endblock %}
+{%block navigation_settings %}hidden{% endblock %}
+{%block navigation_courses %}hidden{% endblock %}
+{%block navigation_logout %}hidden{% endblock %}
 
 {% block content %}
-    <br/>
-    <div class="page-header">
-        <h1>
-            Welcome <br/>
-            <small>Assignment Management and Submission System</small>
-        </h1>
-    </div>
+<br/>
+<div class="page-header">
+    <h1>
+        Welcome <br/>
+        <small>Assignment Management and Submission System</small>
+    </h1>
+</div>
 
-    {% include "login_buttons.inc" %}
+{% include "login_buttons.inc" %}
 
 {% endblock %}

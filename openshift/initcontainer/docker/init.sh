@@ -2,68 +2,6 @@
 
 oc login $OC_URL
 
-# import realm
-wget $GIT_URL/sso/realm-export.json
-
-export TKN=$(curl -k "$SSO_URL/auth/realms/master/protocol/openid-connect/token" \
-  -d "username=$SSO_USERNAME" \
-  -d "password=$SSO_PASSWORD" \
-  -d "grant_type=password" \
-  -d "client_id=admin-cli" | jq -r ".access_token")
-
-curl -k -v -X POST "$SSO_URL/auth/admin/realms" \
-  -H "Content-Type:application/json" \
-  -H "Authorization: Bearer $TKN" \
-  -d "@realm-export.json"
-
-
-# import client opensubmit
-wget $GIT_URL/sso/opensubmit.json
-
-sed -i "s/{DOMAIN}/$WEB_DOMAIN/g" opensubmit.json
-
-export TKN=$(curl -k "$SSO_URL/auth/realms/master/protocol/openid-connect/token" \
-  -d "username=$SSO_USERNAME" \
-  -d "password=$SSO_PASSWORD" \
-  -d "grant_type=password" \
-  -d "client_id=admin-cli" | jq -r ".access_token")
-
-curl -k -v -X POST "$SSO_URL/auth/admin/realms/hda/clients" \
-  -H "Content-Type:application/json" \
-  -H "Authorization: Bearer $TKN" \
-  -d "@opensubmit.json"
-
-
-# import client jenkins
-wget $GIT_URL/sso/jenkins.json
-
-sed -i "s/{DOMAIN}/$JENKINS_DOMAIN/g" jenkins.json
-
-export TKN=$(curl -k "$SSO_URL/auth/realms/master/protocol/openid-connect/token" \
-  -d "username=$SSO_USERNAME" \
-  -d "password=$SSO_PASSWORD" \
-  -d "grant_type=password" \
-  -d "client_id=admin-cli" | jq -r ".access_token")
-
-curl -k -v -X POST "$SSO_URL/auth/admin/realms/hda/clients" \
-  -H "Content-Type:application/json" \
-  -H "Authorization: Bearer $TKN" \
-  -d "@jenkins.json"
-
-
-# change client secret from opensubmit and add admin rights
-export TKN=$(curl -k "$SSO_URL/auth/realms/master/protocol/openid-connect/token" \
-  -d "username=$SSO_USERNAME" \
-  -d "password=$SSO_PASSWORD" \
-  -d "grant_type=password" \
-  -d "client_id=admin-cli" | jq -r ".access_token")
-
-export OPENSUBMIT_ID=$(curl -k "$SSO_URL/auth/admin/realms/hda/clients" \
-  -H "Authorization: Bearer $TKN" | jq -r '.[] | select(.clientId == "opensubmit") | .id')
-
-export OPENSUBMIT_SECRET=$(curl -k "$SSO_URL/auth/admin/realms/hda/clients/$OPENSUBMIT_ID/client-secret" \
-  -H "Authorization: Bearer $TKN" | jq -r ".value")
-
 # make admin in opensubmit
 psql postgresql://opensubmit:opensubmit@db/opensubmit << EOF
      \set jenkinsAdmin `echo "$JENKINS_ADMIN"`
@@ -81,23 +19,7 @@ psql postgresql://opensubmit:opensubmit@db/opensubmit << EOF
 EOF
 
 
-# jenkins openid config
-export TKN=$(curl -k "$SSO_URL/auth/realms/master/protocol/openid-connect/token" \
-  -d "username=$SSO_USERNAME" \
-  -d "password=$SSO_PASSWORD" \
-  -d "grant_type=password" \
-  -d "client_id=admin-cli" | jq -r ".access_token")
-
-export JENKINS_ID=$(curl -k "$SSO_URL/auth/admin/realms/hda/clients" \
-  -H "Authorization: Bearer $TKN" | jq -r '.[] | select(.clientId == "jenkins") | .id')
-
-export JENKINS_SECRET=$(curl -k "$SSO_URL/auth/admin/realms/hda/clients/$JENKINS_ID/client-secret" \
-  -H "Authorization: Bearer $TKN" | jq -r ".value")
-
-export JENKINS_CRYPT_SECRET=$(curl -k --user 'admin:admin' --data-urlencode \
-  "script=pw='$JENKINS_SECRET'; passwd_enc=hudson.util.Secret.fromString(pw).getEncryptedValue(); println(passwd_enc)" \
-   https://$JENKINS_DOMAIN/scriptText)
-
+# jenkins api and admin user
 curl -k --user 'admin:admin' --data-urlencode \
   "script=import jenkins.model.*; import hudson.security.*; def instance = Jenkins.getInstance(); \
           def hudsonRealm = new HudsonPrivateSecurityRealm(false); hudsonRealm.createAccount('api', '$JENKINS_API_PASSWORD'); \
@@ -109,25 +31,19 @@ curl -k --user 'admin:admin' --data-urlencode \
           def strategy = new GlobalMatrixAuthorizationStrategy(); \
           strategy.add(Jenkins.ADMINISTER, 'api'); \
           strategy.add(Jenkins.ADMINISTER, 'admin'); \
+          strategy.add(Jenkins.ADMINISTER, '$JENKINS_ADMIN'); \
           instance.setAuthorizationStrategy(strategy)" \
    https://$JENKINS_DOMAIN/scriptText
 
+
+# read jenkins api token
 export JENKINS_API_TOKEN=$(curl -k --user "api:$JENKINS_API_PASSWORD" --data-urlencode \
   "script=import jenkins.security.*; User u = User.get('api'); ApiTokenProperty t = u.getProperty(ApiTokenProperty.class); \
           def token = t.getApiToken(); println (token)" \
    https://$JENKINS_DOMAIN/scriptText)
 
-wget $GIT_URL/jenkins/config.xml
 
-sed -i "s/{USERNAME}/$JENKINS_ADMIN/g" config.xml
-sed -i "s,{SECRET},$JENKINS_CRYPT_SECRET,g" config.xml
-
-sed -i "s,{TOKEN_URL},$SSO_URL/auth/realms/hda/protocol/openid-connect/token,g" config.xml
-sed -i "s,{AUTH_URL},$SSO_URL/auth/realms/hda/protocol/openid-connect/auth,g" config.xml
-sed -i "s,{USERINFO_URL},$SSO_URL/auth/realms/hda/protocol/openid-connect/userinfo,g" config.xml
-sed -i "s,{LOGOUT_URL},$SSO_URL/auth/realms/hda/protocol/openid-connect/logout,g" config.xml
-sed -i "s,{REDIRECT_URL},https://$JENKINS_DOMAIN,g" config.xml
-
+# jenkins install and update plugins
 wget --no-check-certificate https://$JENKINS_DOMAIN/jnlpJars/jenkins-cli.jar
 
 export UPDATE_LIST=$( java -jar jenkins-cli.jar -auth admin:admin -noCertificateCheck \
@@ -139,29 +55,50 @@ if [ ! -z "${UPDATE_LIST}" ]; then
 fi
 
 java -jar jenkins-cli.jar -auth admin:admin -noCertificateCheck \
-      -s https://$JENKINS_DOMAIN install-plugin oic-auth valgrind warnings clang-scanbuild cppcheck xunit git;
+      -s https://$JENKINS_DOMAIN install-plugin valgrind warnings clang-scanbuild cppcheck xunit git gitlab-oauth;
 
+
+# jenkins delete openshift sample
 echo " \
-    \cp config.xml /var/lib/jenkins/ && \
     rm -rf /var/lib/jenkins/jobs/OpenShift\ Sample/ \
 " > jenkinsScript
 
 export JENKINS_POD_NAME=$(oc get pods | grep -o "jenkins\S*")
 export EXEC_POD_NAME=$(oc get pods | grep -o "exec\S*")
 
-oc cp config.xml $JENKINS_POD_NAME:./
 oc cp jenkinsScript $JENKINS_POD_NAME:./
 oc exec $JENKINS_POD_NAME -- chmod +x jenkinsScript
 oc exec $JENKINS_POD_NAME -- bash -c ./jenkinsScript
 
+
+# jenkins gitlab auth
+oc cp $JENKINS_POD_NAME:/var/lib/jenkins/config.xml jenkinsConfig
+
+sed -i ':a;N;$!ba;s|<securityRealm.*\n.*\n.*\n.*securityRealm>|<securityRealm class="org.jenkinsci.plugins.GitLabSecurityRealm"> \
+    <gitlabWebUri>https://code.fbi.h-da.de</gitlabWebUri> \
+    <gitlabApiUri>https://code.fbi.h-da.de</gitlabApiUri> \
+    <clientID>'"$OPENSUBMIT_LOGIN_GITLAB_JENKINS_OAUTH_KEY"'</clientID> \
+    <clientSecret>'"$OPENSUBMIT_LOGIN_GITLAB_JENKINS_OAUTH_SECRET"'</clientSecret> \
+  </securityRealm>|g' \
+jenkinsConfig
+
+sed -i 's#<permission>hudson.model.Hudson.Administer:admin</permission>##g' jenkinsConfig
+
+oc cp jenkinsConfig $JENKINS_POD_NAME:/var/lib/jenkins/config.xml
+
+
+# executor ssh config for jenkins
 oc exec $EXEC_POD_NAME -- ssh-keygen -t rsa -f /ssh/key -N ''
 oc cp $EXEC_POD_NAME:ssh/key.pub ./
 oc exec $JENKINS_POD_NAME -- mkdir /var/lib/jenkins/ssh
 oc cp key.pub $JENKINS_POD_NAME:/var/lib/jenkins/ssh/authorized_keys
 
+
+# restart jenkins
 java -jar jenkins-cli.jar -auth admin:admin -noCertificateCheck \
   -s https://$JENKINS_DOMAIN safe-restart;
 
+
+# set jenkins api token to exec
 oc project $MY_POD_NAMESPACE && \
-oc set env deploymentconfig/web OPENSUBMIT_LOGIN_OPENSHIFT_SSO_OIDC_RP_CLIENT_SECRET=$OPENSUBMIT_SECRET && \
 oc set env deploymentconfig/exec JENKINS_API_TOKEN=$JENKINS_API_TOKEN

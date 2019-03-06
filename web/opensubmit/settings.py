@@ -1,10 +1,9 @@
 import os
-from configparser import SafeConfigParser
-
+import configparser
 from django.core.exceptions import ImproperlyConfigured
 
 script_dir = os.path.dirname(__file__)
-VERSION = '0.7.8'
+VERSION = '0.7.19'
 
 NOT_CONFIGURED_VALUE = '***not configured***'
 
@@ -25,7 +24,7 @@ class Config():
             if os.path.isfile(config_file):
                 self.config_file = config_file
                 self.is_production = is_production
-                self.config = SafeConfigParser()
+                self.config = configparser.SafeConfigParser()
                 self.config.read([self.config_file], encoding='utf-8')
                 return
 
@@ -41,7 +40,19 @@ class Config():
         return text.lower() in ['true', 't', 'yes', 'active', 'enabled']
 
     def get(self, name, category, mandatory=False, expect_leading_slash=None, expect_trailing_slash=None):
-        text = self.config.get(name, category)
+        try:
+            text = self.config.get(name, category)
+        except configparser.NoOptionError:
+            if not mandatory:
+                return ''
+            else:
+                raise ImproperlyConfigured(name + ' not set in the config file.')
+        except configparser.NoSectionError:
+            if not mandatory:
+                return ''
+            else:
+                raise ImproperlyConfigured(category + ' section not set in the config file.')
+
         logtext = "Setting '[%s] %s' in %s has the value '%s'" % (category, name, self.config_file, text)
 
         if mandatory and text == NOT_CONFIGURED_VALUE:
@@ -69,11 +80,13 @@ config = Config((
     ('/etc/opensubmit/settings.ini', True),  # Linux production system
     (os.path.dirname(__file__) + '/settings_dev.ini', False),  # Linux / Mac development system
     (os.path.expandvars('$APPDATA') + 'opensubmit/settings.ini', False),  # Windows development system
-))
+    ))
 
 ################################################################################################################
 ################################################################################################################
 ################################################################################################################
+
+CONFIG_FILE = config.config_file
 
 # Global settings
 DATABASES = {
@@ -94,20 +107,16 @@ DEBUG = config.get_bool('general', 'DEBUG', default=False)
 # Demo mode allows login bypass
 DEMO = config.get_bool('general', 'DEMO', default=False)
 
-# Determine MAIN_URL / FORCE_SCRIPT option
 HOST = config.get('server', 'HOST')
 HOST_DIR = config.get('server', 'HOST_DIR')
 if len(HOST_DIR) > 0:
-    MAIN_URL = HOST + '/' + HOST_DIR
-    FORCE_SCRIPT_NAME = '/' + HOST_DIR
+    mainurl = HOST + '/' + HOST_DIR
 else:
-    MAIN_URL = HOST
-    FORCE_SCRIPT_NAME = ''
+    mainurl = HOST
 
-# Determine some settings based on the MAIN_URL
-LOGIN_URL = MAIN_URL
-LOGIN_ERROR_URL = MAIN_URL
-LOGIN_REDIRECT_URL = MAIN_URL + '/dashboard/'
+LOGIN_URL = 'index'
+LOGIN_ERROR_URL = 'index'
+LOGIN_REDIRECT_URL = 'dashboard'
 
 # Local file system storage for uploads.
 # Please note that MEDIA_URL is intentionally not set, since all media
@@ -123,7 +132,7 @@ else:
     SCRIPT_ROOT = os.path.dirname(os.path.abspath(__file__))
 
 # Determine list of allowed hosts
-host_list = [MAIN_URL.split('/')[2]]
+host_list = [mainurl.split('/')[2]]
 if ':' in host_list[0]:
     # Strip port number
     host_list = [host_list[0].split(':')[0]]
@@ -135,9 +144,9 @@ ALLOWED_HOSTS = host_list
 if config.is_production:
     # Root folder for static files
     STATIC_ROOT = SCRIPT_ROOT + '/static-production/'
-    STATICFILES_DIRS = (SCRIPT_ROOT + '/static/',)
+    STATICFILES_DIRS = (SCRIPT_ROOT + '/static/', )
     # Absolute URL for static files, directly served by Apache on production systems
-    STATIC_URL = MAIN_URL + '/static/'
+    STATIC_URL = mainurl + '/static/'
     EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
     SERVER_EMAIL = config.get('admin', 'ADMIN_EMAIL')
 else:
@@ -213,7 +222,7 @@ MIDDLEWARE_CLASSES = (
     'django.contrib.auth.middleware.RemoteUserMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'social_django.middleware.SocialAuthExceptionMiddleware',
-    'opensubmit.middleware.CourseRegister',
+    'opensubmit.middleware.CourseRegister'
 )
 ROOT_URLCONF = 'opensubmit.urls'
 WSGI_APPLICATION = 'opensubmit.wsgi.application'
@@ -229,9 +238,7 @@ INSTALLED_APPS = (
     'grappelli.dashboard',
     'grappelli',
     'django.contrib.admin',
-    #    'django.contrib.admin.apps.SimpleAdminConfig',
     'opensubmit.app.OpenSubmitConfig',
-    'mozilla_django_oidc',
 )
 
 LOG_FILE = config.get('server', 'LOG_FILE')
@@ -299,12 +306,11 @@ LOGIN_GITHUB = (config.get("login", "LOGIN_GITHUB_OAUTH_KEY").strip() != '' and
 LOGIN_TWITTER = (config.get("login", "LOGIN_TWITTER_OAUTH_KEY").strip() != '' and
                  config.get("login", "LOGIN_TWITTER_OAUTH_SECRET").strip() != '')
 LOGIN_OPENID = (config.get('login', 'OPENID_PROVIDER').strip() != '')
+LOGIN_OIDC = (config.get('login', 'LOGIN_OIDC_ENDPOINT').strip() != '')
 LOGIN_SHIB = (config.get('login', 'LOGIN_SHIB_DESCRIPTION').strip() != '')
-
-if DEMO:
-    LOGIN_OPENSHIFT_SSO = False
-else:
-    LOGIN_OPENSHIFT_SSO = (config.get('login', 'LOGIN_OPENSHIFT_SSO_PROVIDER').strip() != '')
+LOGIN_GITLAB = (config.get("login", "LOGIN_GITLAB_OAUTH_KEY").strip() != '' and
+                config.get("login", "LOGIN_GITLAB_OAUTH_SECRET").strip() != '' and
+                config.get("login", "LOGIN_GITLAB_URL").strip() != '')
 
 AUTHENTICATION_BACKENDS = (
     'django.contrib.auth.backends.ModelBackend',
@@ -314,42 +320,60 @@ if LOGIN_GOOGLE:
     AUTHENTICATION_BACKENDS += ('social_core.backends.google.GoogleOAuth2',)
     SOCIAL_AUTH_GOOGLE_OAUTH2_KEY = config.get("login", "LOGIN_GOOGLE_OAUTH_KEY")
     SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = config.get("login", "LOGIN_GOOGLE_OAUTH_SECRET")
+    whitelist = config.get("whitelist", "WHITELIST_GOOGLE").strip()
+    if whitelist != "":
+        SOCIAL_AUTH_GOOGLE_WHITELISTED_EMAILS = config.get("whitelist", "WHITELIST_GOOGLE").split(',')
 
 if LOGIN_TWITTER:
     AUTHENTICATION_BACKENDS += ('social_core.backends.twitter.TwitterOAuth',)
     SOCIAL_AUTH_TWITTER_KEY = config.get("login", "LOGIN_TWITTER_OAUTH_KEY")
     SOCIAL_AUTH_TWITTER_SECRET = config.get("login", "LOGIN_TWITTER_OAUTH_SECRET")
+    whitelist = config.get("whitelist", "WHITELIST_TWITTER").strip()
+    if whitelist != "":
+        SOCIAL_AUTH_TWITTER_WHITELISTED_EMAILS = config.get("whitelist", "WHITELIST_TWITTER").split(',')
 
 if LOGIN_GITHUB:
     AUTHENTICATION_BACKENDS += ('social_core.backends.github.GithubOAuth2',)
     SOCIAL_AUTH_GITHUB_KEY = config.get("login", "LOGIN_GITHUB_OAUTH_KEY")
     SOCIAL_AUTH_GITHUB_SECRET = config.get("login", "LOGIN_GITHUB_OAUTH_SECRET")
+    whitelist = config.get("whitelist", "WHITELIST_GITHUB").strip()
+    if whitelist != "":
+        SOCIAL_AUTH_GITHUB_WHITELISTED_EMAILS = config.get("whitelist", "WHITELIST_GITHUB").split(',')
+
+if LOGIN_GITLAB:
+    AUTHENTICATION_BACKENDS += ('social_core.backends.gitlab.GitLabOAuth2',)
+    LOGIN_GITLAB_DESCRIPTION = config.get('login', 'LOGIN_GITLAB_DESCRIPTION')
+    SOCIAL_AUTH_GITLAB_KEY = config.get("login", "LOGIN_GITLAB_OAUTH_KEY")
+    SOCIAL_AUTH_GITLAB_SECRET = config.get("login", "LOGIN_GITLAB_OAUTH_SECRET")
+    SOCIAL_AUTH_GITLAB_API_URL = config.get("login", "LOGIN_GITLAB_URL")
+    whitelist = config.get("whitelist", "WHITELIST_GITLAB").strip()
+    if whitelist != "":
+        SOCIAL_AUTH_GITLAB_WHITELISTED_EMAILS = config.get("whitelist", "WHITELIST_GITLAB").split(',')
 
 if LOGIN_OPENID:
     AUTHENTICATION_BACKENDS += ('opensubmit.social.open_id.OpenIdAuth',)
     LOGIN_DESCRIPTION = config.get('login', 'LOGIN_DESCRIPTION')
     OPENID_PROVIDER = config.get('login', 'OPENID_PROVIDER')
+    whitelist = config.get("whitelist", "WHITELIST_OPENID").strip()
+    if whitelist != "":
+        SOCIAL_AUTH_OPENID_WHITELISTED_EMAILS = config.get("whitelist", "WHITELIST_OPENID").split(',')
+
+if LOGIN_OIDC:
+    AUTHENTICATION_BACKENDS += ('opensubmit.social.oidc.OpenIdConnectAuth',)
+    LOGIN_OIDC_DESCRIPTION = config.get('login', 'LOGIN_OIDC_DESCRIPTION')
+    LOGIN_OIDC_ENDPOINT = config.get('login', 'LOGIN_OIDC_ENDPOINT')
+    LOGIN_OIDC_CLIENT_ID = config.get('login', 'LOGIN_OIDC_CLIENT_ID')
+    LOGIN_OIDC_CLIENT_SECRET = config.get('login', 'LOGIN_OIDC_CLIENT_SECRET')
+    whitelist = config.get("whitelist", "WHITELIST_OIDC").strip()
+    if whitelist != "":
+        SOCIAL_AUTH_OIDC_WHITELISTED_EMAILS = config.get("whitelist", "WHITELIST_OIDC").split(',')
 
 if LOGIN_SHIB:
     AUTHENTICATION_BACKENDS += ('opensubmit.social.apache.ModShibAuth',)
     LOGIN_SHIB_DESCRIPTION = config.get('login', 'LOGIN_SHIB_DESCRIPTION')
-
-if LOGIN_OPENSHIFT_SSO:
-    LOGIN_OPENSHIFT_SSO_PROVIDER = config.get('login', 'LOGIN_OPENSHIFT_SSO_PROVIDER')
-    LOGIN_OPENSHIFT_SSO_DESCRIPTION = config.get('login', 'LOGIN_OPENSHIFT_SSO_DESCRIPTION')
-    AUTHENTICATION_BACKENDS += ('opensubmit.social.open_idV2.MyOIDCAB',)
-    OIDC_RP_CLIENT_ID = config.get('login', 'LOGIN_OPENSHIFT_SSO_OIDC_RP_CLIENT_ID')
-    OIDC_RP_CLIENT_SECRET = config.get('login', 'LOGIN_OPENSHIFT_SSO_OIDC_RP_CLIENT_SECRET')
-    OIDC_OP_AUTHORIZATION_ENDPOINT = LOGIN_OPENSHIFT_SSO_PROVIDER + '/auth'
-    OIDC_OP_TOKEN_ENDPOINT = LOGIN_OPENSHIFT_SSO_PROVIDER + '/token'
-    OIDC_OP_USER_ENDPOINT = LOGIN_OPENSHIFT_SSO_PROVIDER + '/userinfo'
-    LOGIN_REDIRECT_URL = MAIN_URL
-    LOGOUT_REDIRECT_URL = MAIN_URL
-    OIDC_VERIFY_SSL = config.get_bool('login', 'LOGIN_OPENSHIFT_SSO_OIDC_VERIFY_SSL', default=True)
-    OIDC_RP_SIGN_ALGO = config.get('login', 'LOGIN_OPENSHIFT_SSO_OIDC_RP_SIGN_ALGO')
-    OIDC_OP_JWKS_ENDPOINT = LOGIN_OPENSHIFT_SSO_PROVIDER + '/certs'
-    OIDC_OP_LOGOUT_URL_METHOD = LOGIN_OPENSHIFT_SSO_PROVIDER + '/logout'
-    MIDDLEWARE_CLASSES += ('mozilla_django_oidc.middleware.SessionRefresh',)
+    whitelist = config.get("whitelist", "WHITELIST_SHIB").strip()
+    if whitelist != "":
+        SOCIAL_AUTH_SHIB_WHITELISTED_EMAILS = config.get("whitelist", "WHITELIST_SHIB").split(',')
 
 AUTHENTICATION_BACKENDS += ('opensubmit.social.lti.LtiAuth',)
 
@@ -369,11 +393,12 @@ SOCIAL_AUTH_PIPELINE = (
     'social_core.pipeline.social_auth.associate_user',
     'social_core.pipeline.social_auth.load_extra_data',
     'social_core.pipeline.user.user_details',
-    'opensubmit.views.demo.assign_role'
+    'opensubmit.views.demo.assign_role',
+    'opensubmit.views.lti.store_report_link'
 )
 
 JOB_EXECUTOR_SECRET = config.get("executor", "SHARED_SECRET")
-assert (JOB_EXECUTOR_SECRET is not "")
+assert(JOB_EXECUTOR_SECRET is not "")
 
 GRAPPELLI_ADMIN_TITLE = "OpenSubmit"
 GRAPPELLI_SWITCH_USER = True

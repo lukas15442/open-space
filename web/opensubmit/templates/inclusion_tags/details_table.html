@@ -2,76 +2,54 @@
 
 <table class="table">
     <tr>
-        <td>Submission ID</td>
-        <td>{{ submission.pk }}</td>
-    </tr>
-    <tr>
-        <td>Submitted</td>
-        <td>{{ submission.created }}</td>
-    </tr>
-    <tr>
-        <td>Course</td>
-        <td><a href="{{ submission.assignment.course.homepage }}">{{ submission.assignment.course }}</a></td>
-    </tr>
-    <tr>
+        <td>Submission ID</td><td>{{ submission.pk }}</td>
+    </tr><tr>
+        <td>Submitted</td><td>{{ submission.created }}</td>
+    </tr><tr>
+        <td>Course</td><td><a href="{{ submission.assignment.course.homepage }}">{{ submission.assignment.course }}</a></td>
+    </tr><tr>
         <td>Assignment</td>
         <td>
             <a href="{{ submission.assignment.url }}">{{ submission.assignment }}</a><br/>
             Deadline: {% deadline submission.assignment %}<br/>
-            Group work: {% if submission.assignment.max_authors > 1 %}Yes ({{ submission.assignment.max_authors }}
-            students){% else %}No{% endif %}<br/>
+            Group work: {% if submission.assignment.max_authors > 1%}Yes ({{submission.assignment.max_authors}} students){% else %}No{% endif %}<br/>
             Graded: {% if submission.assignment.is_graded %}Yes{% else %}No{% endif %}</td>
         </td>
-    </tr>
-    <tr>
-        <td>Submitter</td>
-        <td>{{ submission.submitter }}</td>
-    </tr>
-    <tr>
-        <td>Authors</td>
-        <td>{{ submission.authors.all|join:", " }}</td>
-    </tr>
-    <tr>
-        <td>Notes by submitter</td>
-        <td>{{ submission.notes }}</td>
-        {% if submission.assignment.has_attachment %}
-    </tr>
-    <tr>
-        <td>File</td>
-        <td>
-            <a href="{{ submission.file_upload.get_absolute_url }}">{{ submission.file_upload.attachment|basename }}</a>
-            {% if submission.get_compile_result %}
-                <h5>Compilation test result:</h5>
-                <code>{{ submission.get_compile_result.result|linebreaks }}</code>
-            {% endif %}
-            {% if submission.get_validation_result %}
-            <h5>Validity test result:</h5>
-            <code>{% autoescape off %}{{ submission.get_validation_result.result|linebreaks }}{% endautoescape %}</code>
-            {% if submission.assignment.validity_script_download %}
-                <br/>(<a href="{% url 'validity_script' submission.assignment.pk %}">Download</a> the validation script)
-            {% endif %}
-            {% endif %}
-        </td>
-        {% endif %}
-    </tr>
-    <tr>
-        <td>State</td>
-        <td>{{ submission.state_for_students }}</td>
-        {% if submission.show_grading %}
-            </tr>
-            <tr>
-                <td>Grading</td>
-                <td>{% grading submission %}</td>
-            </tr>
-            <tr>
-                <td>Grading Notes</td>
-                <td>{{ submission.grading_notes|linebreaks }}</td>
-                {% if submission.grading_file %}
-                    </tr>
-                    <tr>
-                    <td>Grading Attachment</td>
-                    <td><a href="{{ submission.grading_file_url }}">{{ submission.grading_file|basename }}</a></td>
+    </tr><tr>
+        <td>Submitter</td><td>{{ submission.submitter }}</td>
+    </tr><tr>
+        <td>Authors</td><td>{{ submission.authors.all|join:", " }}</td>
+    </tr><tr>
+        <td>Notes by submitter</td><td>{{ submission.notes }}</td>
+    {% if submission.assignment.has_attachment %}
+        </tr><tr>
+            <td>File</td>
+            <td>
+                <a href="{{ submission.file_upload.get_absolute_url }}">{{ submission.file_upload.attachment|basename }}</a>
+                {% if submission.get_compile_result %}
+                    <h5>Compilation test result:</h5>
+                    <code>{{ submission.get_compile_result.result|linebreaks }}</code>
                 {% endif %}
+                {% if submission.get_validation_result %}
+                    <h5>Validity test result:</h5>
+                    <code>{{ submission.get_validation_result.result|linebreaks }}</code>
+                    {% if submission.assignment.validity_script_download %}
+                        <br/>(<a href="{% url 'validity_script' submission.assignment.pk %}">Download</a> the validation script)
+                    {% endif %}
+                {% endif %}
+            </td>
+    {% endif %}
+    </tr><tr>
+        <td>State</td><td>{{ submission.state_for_students }}</td>
+    {% if submission.show_grading %}
+        </tr><tr>
+            <td>Grading</td><td>{% grading submission %}</td>
+        </tr><tr>
+            <td>Grading Notes</td><td>{{ submission.grading_notes|linebreaks }}</td>
+        {% if submission.grading_file %}
+            </tr><tr>
+                <td>Grading Attachment</td><td><a href="{{ submission.grading_file_url }}">{{ submission.grading_file|basename }}</a></td>
         {% endif %}
-        </tr>
+    {% endif %}
+    </tr>
 </table>

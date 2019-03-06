@@ -25,7 +25,7 @@ done
 echo "Web server started."
 
 # Perform config test, triggers also registration
-opensubmit-exec configtest
+/usr/local/bin/opensubmit-exec configtest
 
 echo "starting exec"
 while [ 1 ]

@@ -1,5 +1,5 @@
 SHELL = /bin/bash
-VERSION = 0.7.8
+VERSION = 0.7.19
 
 .PHONY: build docs check-venv
 
@@ -48,13 +48,11 @@ tests: check-venv web/opensubmit/settings_dev.ini
 coverage: check-venv web/opensubmit/settings_dev.ini
 	coverage run ./web/manage.py test opensubmit.tests; coverage html
 
-# Re-create docker images locally
-docker-build: build
-	docker-compose build
-
-# Run docker images locally
-docker:
-	docker-compose up
+# Run docker container with current code for smoke testing
+# Mounts the sources in the Docker container - so, as long as Apache
+# detects the source code change, you should be able to do live patching
+docker-test: build
+	docker-compose -f deployment/docker-compose-test.yml up
 
 # Update version numbers, commit and tag 
 bumpversion:
@@ -74,18 +72,18 @@ docker-push: build
 
 # Re-create docker images and upload into openshift
 docker-pushtoopenshift: build
-	docker build -t 172.30.1.1:5000/opensubmit/web:latest web
-	docker push 172.30.1.1:5000/opensubmit/web:latest
-	docker build -t 172.30.1.1:5000/opensubmit/exec:latest executor
-	docker push 172.30.1.1:5000/opensubmit/exec:latest
+	docker build -t $$(minishift openshift registry)/opensubmit/web:latest web
+	docker push $$(minishift openshift registry)/opensubmit/web:latest
+	docker build -t $$(minishift openshift registry)/opensubmit/exec:latest executor
+	docker push $$(minishift openshift registry)/opensubmit/exec:latest
 
 docker-pushjenkinstoopenshift:
-	docker build -t 172.30.1.1:5000/opensubmit/jenkins:latest jenkins/docker
-	docker push 172.30.1.1:5000/opensubmit/jenkins:latest
+	docker build -t $$(minishift openshift registry)/opensubmit/jenkins:latest jenkins/docker
+	docker push $$(minishift openshift registry)/opensubmit/jenkins:latest
 
 docker-pushinittoopenshift:
-	docker build -t 172.30.1.1:5000/opensubmit/initcontainer:latest openshift/initcontainer/docker
-	docker push 172.30.1.1:5000/opensubmit/initcontainer:latest
+	docker build -t $$(minishift openshift registry)/opensubmit/initcontainer:latest openshift/initcontainer/docker
+	docker push $$(minishift openshift registry)/opensubmit/initcontainer:latest
 
 # Upload built packages to PyPI.
 # Assumes valid credentials in ~/.pypirc

@@ -12,6 +12,7 @@ fi
 # (Re-)create OpenSubmit configuration from env variables
 opensubmit-web configcreate 
 opensubmit-web apachecreate
+opensubmit-web dumpconfig
 
 # Wait for postgres to come up
 while ! nc -z $OPENSUBMIT_DATABASE_HOST 5432 2>/dev/null

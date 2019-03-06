@@ -1,22 +1,22 @@
+from datetime import datetime
 import json
 import os
-from datetime import datetime
 
-from django.contrib import auth, messages
-from django.contrib.auth.mixins import LoginRequiredMixin
-from django.core.exceptions import PermissionDenied
-from django.core.urlresolvers import reverse
-from django.core.urlresolvers import reverse_lazy
-from django.forms.models import modelform_factory, model_to_dict
-from django.shortcuts import get_object_or_404, render
-from django.shortcuts import redirect
-from django.utils.safestring import mark_safe
 from django.views.generic import TemplateView, RedirectView, ListView, DetailView
 from django.views.generic.edit import UpdateView
-from opensubmit import settings
+from django.shortcuts import redirect
+from django.contrib import auth, messages
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.core.urlresolvers import reverse_lazy
+from django.forms.models import modelform_factory, model_to_dict
+from django.core.exceptions import PermissionDenied
+from django.shortcuts import get_object_or_404, render
+from django.utils.safestring import mark_safe
+from django.core.urlresolvers import reverse
+
+from django.conf import settings
 from opensubmit.forms import SettingsForm, getSubmissionForm, SubmissionFileUpdateForm
 from opensubmit.models import UserProfile, Submission, TestMachine, Course, Assignment, SubmissionFile
-from opensubmit.models.userprofile import db_fixes
 from opensubmit.views.helpers import BinaryDownloadMixin
 
 
@@ -39,7 +39,6 @@ class ImpressView(TemplateView):
         else:
             return super(ImpressView, self).get(request)
 
-
 class PrivacyView(TemplateView):
     template_name = 'privacy.html'
 
@@ -59,9 +58,6 @@ class LogoutView(LoginRequiredMixin, RedirectView):
 
     def get(self, request):
         auth.logout(request)
-        if settings.LOGIN_OPENSHIFT_SSO:
-            return redirect(
-                settings.OIDC_OP_LOGOUT_URL_METHOD + '?redirect_uri=' + settings.MAIN_URL)
         return super().get(request)
 
 
@@ -120,8 +116,7 @@ class ArchiveView(LoginRequiredMixin, ListView):
     template_name = 'archive.html'
 
     def get_queryset(self):
-        archived = self.request.user.authored.all().exclude(assignment__course__active=False).filter(
-            state=Submission.WITHDRAWN).order_by('-created')
+        archived = self.request.user.authored.all().exclude(assignment__course__active=False).filter(state=Submission.WITHDRAWN).order_by('-created')
         return archived
 
 
@@ -149,12 +144,16 @@ class DashboardView(LoginRequiredMixin, TemplateView):
         context['machines'] = TestMachine.objects.filter(enabled=True)
         context['today'] = datetime.now()
         context['user'] = self.request.user
+        context['assign_missed'] = self.request.user.profile.gone_assignments()
+        assignments = self.request.user.profile.open_assignments()
+        for assign in assignments:
+            # The function for getting an assignment download URL
+            # expects the current request object
+            assign.description_url = assign.url(self.request)
+        context['assignments'] = assignments
         return context
 
     def get(self, request):
-        # Check and fix database on lower levels for the current user
-        db_fixes(request.user)
-
         # LTI keys and passwords are defined per course
         # We use this here to register students automatically for
         # courses based on their LTI credentials.
@@ -219,17 +218,19 @@ class SubmissionNewView(LoginRequiredMixin, TemplateView):
     demands tailoring of the double-form setup here.
     '''
     template_name = 'new.html'
+    redirect_on_success = 'dashboard'
 
     def dispatch(self, request, *args, **kwargs):
-        self.ass = get_object_or_404(Assignment, pk=kwargs['pk'])
+        if request.user.is_authenticated():
+            self.ass = get_object_or_404(Assignment, pk=kwargs['pk'])
 
-        # Check whether submissions are allowed.
-        if not self.ass.can_create_submission(user=request.user):
-            raise PermissionDenied(
-                "You are not allowed to create a submission for this assignment")
+            # Check whether submissions are allowed.
+            if not self.ass.can_create_submission(user=request.user):
+                raise PermissionDenied(
+                    "You are not allowed to create a submission for this assignment")
 
-        # get submission form according to the assignment type
-        self.SubmissionForm = getSubmissionForm(self.ass)
+            # get submission form according to the assignment type
+            self.SubmissionForm = getSubmissionForm(self.ass)
 
         return super().dispatch(request, *args, **kwargs)
 
@@ -267,14 +268,14 @@ class SubmissionNewView(LoginRequiredMixin, TemplateView):
                     # No validation, no grading. We are done.
                     submission.state = Submission.CLOSED
                     submission.save()
-            return redirect('dashboard')
+            return redirect(self.redirect_on_success)
         else:
             messages.error(request, "Please correct your submission information.")
-            return render(request, 'new.html', {'submissionForm': submissionForm, 'assignment': self.ass})
+            return render(request, self.template_name, {'submissionForm': submissionForm, 'assignment': self.ass})
 
     def get(self, request, *args, **kwargs):
         submissionForm = self.SubmissionForm(request.user, self.ass)
-        return render(request, 'new.html', {'submissionForm': submissionForm, 'assignment': self.ass})
+        return render(request, self.template_name, {'submissionForm': submissionForm, 'assignment': self.ass})
 
 
 class SubmissionWithdrawView(LoginRequiredMixin, UpdateView):
@@ -361,3 +362,4 @@ class DescriptionFileView(LoginRequiredMixin, BinaryDownloadMixin, DetailView):
         self.f = ass.description
         self.fname = self.f.name[self.f.name.rfind('/') + 1:]
         return ass
+

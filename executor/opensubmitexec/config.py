@@ -2,32 +2,33 @@
     Common functions dealing with the library configuration.
 '''
 
-import logging
-import os
 import platform
-import ssl
+import os
 import uuid
 from configparser import ConfigParser, RawConfigParser
+
 from urllib.request import urlopen
 
 from . import CONFIG_FILE_DEFAULT
 
+import logging
 logger = logging.getLogger('opensubmitexec')
+
 
 DEFAULT_SETTINGS = {
     'Execution': {
-        'cleanup': 'True',  # Override for disabling file cleanup
-        'message_size': '10000',  # Override for result text limit
-        'timeout': '3600',  # Override for execution timeout
+        'cleanup': 'True',                       # Override for disabling file cleanup
+        'message_size': '10000',                 # Override for result text limit
+        'timeout': '3600',                       # Override for execution timeout
         # Command to compile something on this machine
         'compile_cmd': 'make',
-        'directory': '/tmp/',  # Base directory for temporary directories
-        'pidfile': '/tmp/executor.lock',  # Lock file for script lock
+        'directory': '/tmp/',                    # Base directory for temporary directories
+        'pidfile': '/tmp/executor.lock',         # Lock file for script lock
         # Execution environment for validation scripts
         'script_runner': '/usr/bin/env python3'
     },
     'Server': {
-        'url': 'http://localhost:8000',  # OpenSubmit web server
+        'url': 'http://localhost:8000',          # OpenSubmit web server
         # Shared secret with OpenSubmit web server
         'secret': '49846zut93purfh977TTTiuhgalkjfnk89',
         'uuid': uuid.getnode(),

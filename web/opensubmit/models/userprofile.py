@@ -8,6 +8,9 @@ from .course import Course
 from .submission import Submission
 from .studyprogram import StudyProgram
 
+import logging
+logger = logging.getLogger('OpenSubmit')
+
 
 class UserProfile(models.Model):
     user = models.OneToOneField(User, related_name='profile')
@@ -94,16 +97,6 @@ class UserProfile(models.Model):
         qs = qs.filter(course__in=self.user_courses())
         # Include only assignments this user has no submission for
         return qs.order_by('-hard_deadline')
-
-
-def db_fixes(user):
-    '''
-        Fix users that already exist and never got a user profile attached.
-        This may be user accounts that were created by the Django Social or manually by the admin.
-
-        TODO: This belongs into a User post_save handler.
-    '''
-    profile, created = UserProfile.objects.get_or_create(user=user)
 
 
 def user_unicode(self):

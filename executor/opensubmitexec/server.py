@@ -3,19 +3,22 @@ Internal functions related to the communication with the
 OpenSubmit server.
 '''
 
-import glob
-import json
+import os
+import shutil
 import os.path
 import ssl
-from urllib.error import HTTPError, URLError
-from urllib.parse import urlencode
-from urllib.request import urlopen
+import glob
+import json
 
-import requests
-
+from .exceptions import *
 from .filesystem import *
 from .hostinfo import ipaddress, all_host_infos
 
+from urllib.request import urlopen, urlretrieve
+from urllib.error import HTTPError, URLError
+from urllib.parse import urlencode
+
+import logging
 logger = logging.getLogger('opensubmitexec')
 
 
@@ -25,12 +28,14 @@ def fetch(url, fullpath):
     '''
     logger.debug("Fetching %s from %s" % (fullpath, url))
 
-    if os.path.exists(fullpath):
-        os.remove(fullpath)
-    with open(fullpath, 'wb') as f:
-        resp = requests.get(url, verify=False)
-        f.write(resp.content)
-
+    try:
+        tmpfile, headers = urlretrieve(url)
+        if os.path.exists(fullpath):
+            os.remove(fullpath)
+        shutil.move(tmpfile, fullpath)
+    except Exception as e:
+        logger.error("Error during fetching: " + str(e))
+        raise
 
 def send_post(config, urlpath, post_data):
     '''
@@ -38,6 +43,7 @@ def send_post(config, urlpath, post_data):
     according to the configuration.
     '''
     server = config.get("Server", "url")
+    logger.debug("Sending executor payload to " + server)
     post_data = urlencode(post_data)
     post_data = post_data.encode("utf-8", errors="ignore")
     url = server + urlpath
@@ -108,6 +114,7 @@ def fetch_job(config):
             context = ssl._create_unverified_context()
             result = urlopen(url, context=context)
         headers = result.info()
+        logger.debug("Raw job data: " + str(result.headers).replace('\n', ', '))
         if not compatible_api_version(headers["APIVersion"]):
             # No proper reporting possible, so only logging.
             logger.error("Incompatible API version. Please update OpenSubmit.")
@@ -137,14 +144,20 @@ def fetch_job(config):
         if "Timeout" in headers:
             job.timeout = int(headers["Timeout"])
         if "PostRunValidation" in headers:
-            job.validator_url = headers["PostRunValidation"]
+            # Ignore server-given host + port and use the configured one instead
+            # This fixes problems with the arbitrary Django LiveServer port choice
+            # It would be better to return relative URLs only for this property,
+            # but this is a Bernhard-incompatible API change
+            from urllib.parse import urlparse
+            relative_path = urlparse(headers["PostRunValidation"]).path
+            job.validator_url = config.get("Server", "url") + relative_path
         job.working_dir = create_working_dir(config, job.sub_id)
 
         # Store submission in working directory
         submission_fname = job.working_dir + job.file_name
         with open(submission_fname, 'wb') as target:
             target.write(result.read())
-        assert (os.path.exists(submission_fname))
+        assert(os.path.exists(submission_fname))
 
         # Store validator package in working directory
         validator_fname = job.working_dir + 'download.validator'
@@ -183,7 +196,7 @@ def fake_fetch_job(config, src_dir):
         logger.debug("Copying {0} to {1} ...".format(fname, job.working_dir))
         shutil.copy(fname, job.working_dir)
     case_files = glob.glob(job.working_dir + os.sep + '*')
-    assert (len(case_files) == 2)
+    assert(len(case_files) == 2)
     if os.path.basename(case_files[0]) in ['validator.py', 'validator.zip']:
         validator = case_files[0]
         submission = case_files[1]

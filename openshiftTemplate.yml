@@ -65,7 +65,7 @@ objects:
         - initcontainer
         from:
           kind: ImageStreamTag
-          name: initcontainer:latest
+          name: initcontainer:${IMAGE_VERSION}
       type: ImageChange
 
 - apiVersion: v1
@@ -77,8 +77,8 @@ objects:
     - annotations: null
       from:
         kind: DockerImage
-        name: koehlerlukas/opensubmit-initcontainer:latest
-      name: latest
+        name: koehlerlukas/opensubmit-initcontainer:${IMAGE_VERSION}
+      name: ${IMAGE_VERSION}
 
 # opensubmit definitions
 
@@ -131,8 +131,8 @@ objects:
     - annotations: null
       from:
         kind: DockerImage
-        name: koehlerlukas/opensubmit-exec:latest
-      name: latest
+        name: koehlerlukas/opensubmit-exec:${IMAGE_VERSION}
+      name: ${IMAGE_VERSION}
 
 - apiVersion: v1
   kind: ImageStream
@@ -143,8 +143,8 @@ objects:
     - annotations: null
       from:
         kind: DockerImage
-        name: koehlerlukas/opensubmit-web:latest
-      name: latest
+        name: koehlerlukas/opensubmit-web:${IMAGE_VERSION}
+      name: ${IMAGE_VERSION}
 
 - apiVersion: v1
   kind: DeploymentConfig
@@ -266,7 +266,7 @@ objects:
         - web
         from:
           kind: ImageStreamTag
-          name: web:latest
+          name: web:${IMAGE_VERSION}
       type: ImageChange
 
 - apiVersion: v1
@@ -306,7 +306,7 @@ objects:
         - exec
         from:
           kind: ImageStreamTag
-          name: exec:latest
+          name: exec:${IMAGE_VERSION}
       type: ImageChange
 
 - apiVersion: v1
@@ -362,8 +362,8 @@ objects:
     - annotations: null
       from:
         kind: DockerImage
-        name: koehlerlukas/opensubmit-jenkins:latest
-      name: latest
+        name: koehlerlukas/opensubmit-jenkins:${IMAGE_VERSION}
+      name: ${IMAGE_VERSION}
 
 - kind: Route
   apiVersion: v1
@@ -406,7 +406,7 @@ objects:
         - jenkins
         from:
           kind: ImageStreamTag
-          name: jenkins:latest
+          name: jenkins:${IMAGE_VERSION}
         lastTriggeredImage:
     - type: ConfigChange
     replicas: 0
@@ -570,6 +570,12 @@ parameters:
 - displayName: gitlab jenkins secret
   required: true
   name: OPENSUBMIT_LOGIN_GITLAB_JENKINS_OAUTH_SECRET
+
+- displayName: image version
+  required: true
+  description: image tag version from docker hub
+  value: 'latest'
+  name: IMAGE_VERSION
 
 # opensubmit parameter
 - displayName: opensubmit postgres volume size in GB

@@ -5,6 +5,7 @@
 import platform
 import os
 import uuid
+import ssl
 from configparser import ConfigParser, RawConfigParser
 
 from urllib.request import urlopen

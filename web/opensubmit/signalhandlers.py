@@ -10,7 +10,16 @@ from .models import Submission, Course, SubmissionFile
 from opensubmit.models import UserProfile
 
 import logging
+
 logger = logging.getLogger('OpenSubmit')
+
+
+@receiver(post_save, sender=User)
+def save_profile(sender, instance, **kwargs):
+    logger.debug("Running post-processing for user post_save.")
+    UserProfile.objects.get_or_create(user=instance)
+    instance.profile.student_id = instance.username
+    instance.profile.save()
 
 
 @receiver(user_logged_in)

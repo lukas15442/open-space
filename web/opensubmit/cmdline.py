@@ -134,6 +134,7 @@ def apache_config(config, outputfile):
         text += "    WSGIScriptAlias / %s/wsgi.py" % (settings.SCRIPT_ROOT)
     text += """
     WSGIPassAuthorization On
+    WSGIApplicationGroup %{{GLOBAL}}
     <Directory {static_path}>
          Require all granted
     </Directory>

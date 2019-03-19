@@ -109,7 +109,7 @@ class SettingsForm(forms.ModelForm):
     last_name = forms.CharField(max_length=30, required=True)
     username = forms.CharField(max_length=30, required=True)
     student_id = forms.CharField(
-        max_length=30, required=False, label="Student ID (optional)")
+        max_length=30, required=False, label="Student ID (optional)", disabled=True)
     study_program = forms.ModelChoiceField(
         queryset=StudyProgram.objects, required=False)
 

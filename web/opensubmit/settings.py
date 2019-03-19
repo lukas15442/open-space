@@ -141,6 +141,9 @@ if config.has_option('server', 'HOST_ALIASES'):
     host_list += add_hosts
 ALLOWED_HOSTS = host_list
 
+EMAIL_HOST = 'smtp.h-da.de'
+EMAIL_USE_TLS = True
+
 if config.is_production:
     # Root folder for static files
     STATIC_ROOT = SCRIPT_ROOT + '/static-production/'

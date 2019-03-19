@@ -2,6 +2,8 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
 from django.core.urlresolvers import reverse
+from django.conf import settings
+from django.core.mail import EmailMessage
 
 from datetime import datetime
 import tempfile
@@ -207,6 +209,8 @@ class Submission(models.Model):
                                     help_text="Additional information about the grading as file.")
     state = models.CharField(max_length=2, choices=STATES, default=RECEIVED)
 
+    notify_student = True
+
     objects = models.Manager()
     pending_student_tests = PendingStudentTestsManager()
     pending_full_tests = PendingFullTestsManager()
@@ -368,29 +372,20 @@ class Submission(models.Model):
 
         # The user must be authorized to commit these actions.
         if user and not self.user_can_modify(user):
-            #self.log('DEBUG', "Submission cannot be modified, user is not an authorized user ({!r} not in {!r})", user, self.authorized_users)
-            return False
-
-        # Modification of submissions, that are withdrawn, graded or currently being graded, is prohibited.
-        if self.state in [self.WITHDRAWN, self.GRADED, self.GRADING_IN_PROGRESS, ]:
-            #self.log('DEBUG', "Submission cannot be modified, is in state '{}'", self.state)
+            # self.log('DEBUG', "Submission cannot be modified, user is not an authorized user ({!r} not in {!r})", user, self.authorized_users)
             return False
 
         # Modification of closed submissions is prohibited.
         if self.is_closed():
-            if self.assignment.is_graded():
-                # There is a grading procedure, so taking it back would invalidate the tutors work
-                #self.log('DEBUG', "Submission cannot be modified, it is closed and graded")
-                return False
-            else:
-                #self.log('DEBUG', "Closed submission can be modified, since it has no grading scheme.")
-                return True
+            # self.log('DEBUG', "Closed submission can be modified, since it has no grading scheme.")
+            return True
 
         # Submissions, that are executed right now, cannot be modified
         if self.state in [self.TEST_VALIDITY_PENDING, self.TEST_FULL_PENDING]:
             if not self.file_upload:
                 self.log(
-                    'CRITICAL', "Submission is in invalid state! State is '{}', but there is no file uploaded!", self.state)
+                    'CRITICAL', "Submission is in invalid state! State is '{}', but there is no file uploaded!",
+                    self.state)
                 raise AssertionError()
                 return False
             if self.file_upload.is_executed():
@@ -407,7 +402,7 @@ class Submission(models.Model):
         # Submissions, that belong to an assignment where the hard deadline has passed,
         # cannot be modified.
         if self.assignment.hard_deadline and timezone.now() > self.assignment.hard_deadline:
-            #self.log('DEBUG', "Submission cannot be modified - assignment's hard deadline has passed (hard deadline is: {})", self.assignment.hard_deadline)
+            # self.log('DEBUG', "Submission cannot be modified - assignment's hard deadline has passed (hard deadline is: {})", self.assignment.hard_deadline)
             return False
 
         # The soft deadline has no effect (yet).
@@ -416,7 +411,7 @@ class Submission(models.Model):
                 # The soft deadline has passed
                 pass  # do nothing.
 
-        #self.log('DEBUG', "Submission can be modified.")
+        # self.log('DEBUG', "Submission can be modified.")
         return True
 
     def can_withdraw(self, user=None):
@@ -468,7 +463,7 @@ class Submission(models.Model):
         return self.state in [self.GRADED, self.CLOSED, self.CLOSED_TEST_FULL_PENDING]
 
     def show_grading(self):
-        return self.assignment.gradingScheme != None and self.is_closed()
+        return self.assignment.gradingScheme != None
 
     def get_initial_state(self):
         '''
@@ -513,6 +508,40 @@ class Submission(models.Model):
             perf_data=perf_data,
             submission_file=self.file_upload)
         result.save()
+
+    __original_grading_notes = None
+    __original_grading = None
+    __original_state = None
+    __original_grading_file = None
+
+    def __init__(self, *args, **kwargs):
+        super(Submission, self).__init__(*args, **kwargs)
+        self.__original_grading_notes = self.grading_notes
+        self.__original_grading = self.grading
+        self.__original_state = self.state
+        self.__original_grading_file = self.grading_file
+
+    def save(self, force_insert=False, force_update=False, *args, **kwargs):
+        if self.notify_student:
+            if (self.grading_notes != self.__original_grading_notes or
+                    self.grading != self.__original_grading or
+                    self.state != self.__original_state or
+                    self.grading_file != self.__original_grading_file):
+                subject = "[%s] %s" % (self.assignment.course, 'Grading update')
+                from_email = settings.ADMIN_EMAIL
+                recipients = self.authors.values_list(
+                    'email', flat=True).distinct().order_by('email')
+                message = 'Test'
+                reply_to = [self.assignment.course.owner.email]
+                email = EmailMessage(subject=subject, body=message, from_email=from_email, to=list(recipients),
+                                     reply_to=reply_to)
+                email.send(fail_silently=True)
+
+        super(Submission, self).save(force_insert, force_update, *args, **kwargs)
+        self.__original_grading_notes = self.grading_notes
+        self.__original_grading = self.grading
+        self.__original_state = self.state
+        self.__original_grading_file = self.grading_file
 
     def _get_test_result(self, kind):
         try:
@@ -584,7 +613,7 @@ class Submission(models.Model):
         if self.grading_notes:
             notes = self.grading_notes
             info.write("Grading notes:\n--------------\n%s\n\n" % notes)
-        info.flush()    # no closing here, because it disappears then
+        info.flush()  # no closing here, because it disappears then
         return info
 
     def copy_file_upload(self, targetdir):
@@ -592,7 +621,7 @@ class Submission(models.Model):
             Copies the currently valid file upload into the given directory.
             If possible, the content is un-archived in the target directory.
         '''
-        assert(self.file_upload)
+        assert (self.file_upload)
         # unpack student data to temporary directory
         # os.chroot is not working with tarfile support
         tempdir = tempfile.mkdtemp()

@@ -263,6 +263,8 @@ class SubmissionAdmin(ModelAdmin):
         else:
             obj.notify_student = False
 
+        obj.admin_save = True
+
         obj.save()
 
     def setInitialStateAction(self, request, queryset):

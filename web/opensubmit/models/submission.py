@@ -18,6 +18,7 @@ from .submissiontestresult import SubmissionTestResult
 import logging
 import shutil
 import os
+
 logger = logging.getLogger('OpenSubmit')
 
 
@@ -72,9 +73,9 @@ class PendingTestsManager(models.Manager):
 
     def get_queryset(self):
         jobs = Submission.objects.filter(
-            state__in=[Submission.TEST_FULL_PENDING,           # PF
-                       Submission.CLOSED_TEST_FULL_PENDING,    # CT
-                       Submission.TEST_VALIDITY_PENDING]      # PV
+            state__in=[Submission.TEST_FULL_PENDING,  # PF
+                       Submission.CLOSED_TEST_FULL_PENDING,  # CT
+                       Submission.TEST_VALIDITY_PENDING]  # PV
         ).order_by('-state').order_by('-modified')
         return jobs
 
@@ -84,17 +85,17 @@ class Submission(models.Model):
         A student submission for an assignment.
     '''
 
-    RECEIVED = 'R'                   # Only for initialization, this should never persist
-    WITHDRAWN = 'W'                  # Withdrawn by the student
-    SUBMITTED = 'S'                  # Submitted, no tests so far
-    TEST_VALIDITY_PENDING = 'PV'     # Submitted, validity test planned
-    TEST_VALIDITY_FAILED = 'FV'      # Submitted, validity test failed
-    TEST_FULL_PENDING = 'PF'         # Submitted, full test planned
-    TEST_FULL_FAILED = 'FF'          # Submitted, full test failed
-    SUBMITTED_TESTED = 'ST'          # Submitted, all tests performed, grading planned
-    GRADING_IN_PROGRESS = 'GP'       # Grading in progress, but not finished
-    GRADED = 'G'                     # Graded, student notification not done
-    CLOSED = 'C'                     # Graded, student notification done
+    RECEIVED = 'R'  # Only for initialization, this should never persist
+    WITHDRAWN = 'W'  # Withdrawn by the student
+    SUBMITTED = 'S'  # Submitted, no tests so far
+    TEST_VALIDITY_PENDING = 'PV'  # Submitted, validity test planned
+    TEST_VALIDITY_FAILED = 'FV'  # Submitted, validity test failed
+    TEST_FULL_PENDING = 'PF'  # Submitted, full test planned
+    TEST_FULL_FAILED = 'FF'  # Submitted, full test failed
+    SUBMITTED_TESTED = 'ST'  # Submitted, all tests performed, grading planned
+    GRADING_IN_PROGRESS = 'GP'  # Grading in progress, but not finished
+    GRADED = 'G'  # Graded, student notification not done
+    CLOSED = 'C'  # Graded, student notification done
     CLOSED_TEST_FULL_PENDING = 'CT'  # Keep grading status, full test planned
 
     # Docs start: States
@@ -211,6 +212,8 @@ class Submission(models.Model):
 
     notify_student = True
 
+    admin_save = False
+
     objects = models.Manager()
     pending_student_tests = PendingStudentTestsManager()
     pending_full_tests = PendingFullTestsManager()
@@ -232,7 +235,9 @@ class Submission(models.Model):
 
             The idea is to get all submissions that were a valid solution, regardless of the point in time where you check the list.
         '''
-        return qs.filter(state__in=[Submission.SUBMITTED, Submission.SUBMITTED_TESTED, Submission.TEST_FULL_FAILED, Submission.GRADING_IN_PROGRESS, Submission.GRADED, Submission.CLOSED, Submission.CLOSED_TEST_FULL_PENDING])
+        return qs.filter(state__in=[Submission.SUBMITTED, Submission.SUBMITTED_TESTED, Submission.TEST_FULL_FAILED,
+                                    Submission.GRADING_IN_PROGRESS, Submission.GRADED, Submission.CLOSED,
+                                    Submission.CLOSED_TEST_FULL_PENDING])
 
     @staticmethod
     def qs_tobegraded(qs):
@@ -245,7 +250,8 @@ class Submission(models.Model):
 
             The idea is to get a list of work to be done for the correctors.
         '''
-        return qs.filter(state__in=[Submission.SUBMITTED, Submission.SUBMITTED_TESTED, Submission.TEST_FULL_FAILED, Submission.GRADING_IN_PROGRESS])
+        return qs.filter(state__in=[Submission.SUBMITTED, Submission.SUBMITTED_TESTED, Submission.TEST_FULL_FAILED,
+                                    Submission.GRADING_IN_PROGRESS])
 
     @staticmethod
     def qs_notified(qs):
@@ -280,13 +286,15 @@ class Submission(models.Model):
     def author_list(self):
         ''' The list of authors als text, for admin submission list overview.'''
         author_list = [self.submitter] + \
-            [author for author in self.authors.all().exclude(pk=self.submitter.pk)]
+                      [author for author in self.authors.all().exclude(pk=self.submitter.pk)]
         return ",\n".join([author.get_full_name() for author in author_list])
+
     author_list.admin_order_field = 'submitter'
 
     def course(self):
         ''' The course of this submission as text, for admin submission list overview.'''
         return self.assignment.course
+
     course.admin_order_field = 'assignment__course'
 
     def grading_status_text(self):
@@ -302,6 +310,7 @@ class Submission(models.Model):
                 return str('No')
         else:
             return str('Not graded')
+
     grading_status_text.admin_order_field = 'grading__title'
     grading_status_text.short_description = "Grading finished?"
 
@@ -313,9 +322,10 @@ class Submission(models.Model):
             return True
         else:
             return False
+
     has_grading_notes.short_description = "Grading notes?"
     has_grading_notes.admin_order_field = 'grading_notes'
-    has_grading_notes.boolean = True            # show nice little icon
+    has_grading_notes.boolean = True  # show nice little icon
 
     def grading_value_text(self):
         '''
@@ -522,16 +532,22 @@ class Submission(models.Model):
         self.__original_grading_file = self.grading_file
 
     def save(self, force_insert=False, force_update=False, *args, **kwargs):
-        if self.notify_student:
+        if self.notify_student and self.admin_save:
+            if self.grading_notes is None:
+                self.grading_notes = ''
+            if self.__original_grading_notes is None:
+                self.__original_grading_notes = ''
             if (self.grading_notes != self.__original_grading_notes or
                     self.grading != self.__original_grading or
                     self.state != self.__original_state or
                     self.grading_file != self.__original_grading_file):
-                subject = "[%s] %s" % (self.assignment.course, 'Grading update')
+                subject = "[%s / %s] %s" % (self.assignment.course, self.assignment.title, 'Grading update')
                 from_email = settings.ADMIN_EMAIL
                 recipients = self.authors.values_list(
                     'email', flat=True).distinct().order_by('email')
-                message = 'Test'
+                message = 'Your new grading: \n' \
+                          'Status: %s \n' \
+                          'Notes: %s' % (self.state, self.grading_notes)
                 reply_to = [self.assignment.course.owner.email]
                 email = EmailMessage(subject=subject, body=message, from_email=from_email, to=list(recipients),
                                      reply_to=reply_to)

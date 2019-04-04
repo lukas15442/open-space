@@ -1,6 +1,6 @@
 from django.core.mail import EmailMessage
 from django.core.urlresolvers import reverse
-
+from django.conf import settings
 
 import logging
 logger = logging.getLogger('OpenSubmit')
@@ -69,7 +69,7 @@ def inform_student(submission, request, state):
         return
 
     subject = "[%s] %s" % (submission.assignment.course, subject)
-    from_email = submission.assignment.course.owner.email
+    from_email = settings.ADMIN_EMAIL
     recipients = submission.authors.values_list(
         'email', flat=True).distinct().order_by('email')
     # send student email with BCC to course owner.

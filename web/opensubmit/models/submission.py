@@ -549,11 +549,9 @@ class Submission(models.Model):
                     'email', flat=True).distinct().order_by('email')
                 message = 'Your new grading: \n' \
                           'Status: %s \n' \
-                          'Notes: %s' % (self.state, self.grading_notes)
-                reply_to = [self.assignment.course.owner.email]
-                email = EmailMessage(subject=subject, body=message, from_email=from_email, to=list(recipients),
-                                     reply_to=reply_to)
-                email.send(fail_silently=True)
+                          'Notes: %s' % (dict(self.STUDENT_STATES)[self.state], self.grading_notes)
+                email = EmailMessage(subject=subject, body=message, from_email=from_email, to=list(recipients))
+                email.send(fail_silently=False)
 
         super(Submission, self).save(force_insert, force_update, *args, **kwargs)
         self.__original_grading_notes = self.grading_notes

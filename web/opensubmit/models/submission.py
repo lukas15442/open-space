@@ -210,7 +210,7 @@ class Submission(models.Model):
                                     help_text="Additional information about the grading as file.")
     state = models.CharField(max_length=2, choices=STATES, default=RECEIVED)
 
-    notify_student = False
+    notify_student = True
 
     admin_save = False
 
@@ -543,15 +543,7 @@ class Submission(models.Model):
                     self.grading != self.__original_grading or
                     self.state != self.__original_state or
                     self.grading_file != self.__original_grading_file):
-                subject = "[%s / %s] %s" % (self.assignment.course, self.assignment.title, 'Grading update')
-                from_email = settings.ADMIN_EMAIL
-                recipients = self.authors.values_list(
-                    'email', flat=True).distinct().order_by('email')
-                message = 'Your new grading: \n' \
-                          'Status: %s \n' \
-                          'Notes: %s' % (dict(self.STUDENT_STATES)[self.state], self.grading_notes)
-                email = EmailMessage(subject=subject, body=message, from_email=from_email, to=list(recipients))
-                email.send(fail_silently=False)
+                mails.inform_student_for_grading(self)
 
         super(Submission, self).save(force_insert, force_update, *args, **kwargs)
         self.__original_grading_notes = self.grading_notes
@@ -602,6 +594,9 @@ class Submission(models.Model):
             since this may not be reflected in the model at the moment.
         '''
         mails.inform_student(self, request, state)
+
+    def inform_tutors(self, request, state):
+        mails.inform_tutors(self, request, state)
 
     def info_file(self, delete=True):
         '''

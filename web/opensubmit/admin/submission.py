@@ -142,7 +142,7 @@ class SubmissionAdmin(ModelAdmin):
     )
 
     def notify_student(self, instance):
-        message = '''<input type="checkbox" name="notify_student" value="notify_student">&nbsp;Notify student</input>
+        message = '''<input type="checkbox" name="notify_student" value="notify_student" checked>&nbsp;Notify student</input>
                 '''
         return mark_safe(message)
 

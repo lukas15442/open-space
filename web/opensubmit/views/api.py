@@ -168,6 +168,7 @@ def jobs(request):
                         machine, "Killed due to non-reaction. Please check your application for deadlocks or keyboard input.", "Killed due to non-reaction on timeout signals.")
                     sub.state = Submission.TEST_VALIDITY_FAILED
                     sub.inform_student(request, sub.state)
+                    sub.inform_tutors()
                 if sub.state == Submission.TEST_FULL_PENDING:
                     sub.save_fulltest_result(
                         machine, "Killed due to non-reaction on timeout signals. Student not informed, since this was the full test.")
@@ -263,6 +264,7 @@ def jobs(request):
                     "Validity test not working, setting state to failed")
                 sub.state = Submission.TEST_VALIDITY_FAILED
             sub.inform_student(request, sub.state)
+            sub.inform_tutors()
         # Job state: Waiting for full test
         # Possible with + without grading
         elif request.POST['Action'] == 'test_full' and sub.state == Submission.TEST_FULL_PENDING:

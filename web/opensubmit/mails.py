@@ -3,8 +3,8 @@ from django.core.urlresolvers import reverse
 from django.conf import settings
 
 import logging
-logger = logging.getLogger('OpenSubmit')
 
+logger = logging.getLogger('OpenSubmit')
 
 STUDENT_FAILED_SUB = 'Warning - Validation failed'
 
@@ -78,3 +78,29 @@ def inform_student(submission, request, state):
     # [self.assignment.course.owner.email])
     email = EmailMessage(subject, message, from_email, recipients)
     email.send(fail_silently=True)
+
+
+def inform_tutors(submission):
+    name = list(submission.authors.all())[0].get_full_name()
+    subject = "[%s / %s] %s" % (submission.assignment.course, submission.assignment.title, name)
+    from_email = settings.ADMIN_EMAIL
+    recipients = submission.assignment.course.tutors.values_list(
+        'email', flat=True).distinct().order_by('email')
+    message = settings.HOST + "/teacher/opensubmit/submission/" + str(submission.id) + "/change"
+    email = EmailMessage(subject, message, from_email, recipients)
+    email.send(fail_silently=False)
+
+
+def inform_student_for_grading(submission):
+    subject = "[%s / %s] %s" % (submission.assignment.course, submission.assignment.title, 'Grading update')
+    from_email = settings.ADMIN_EMAIL
+    recipients = submission.authors.values_list(
+        'email', flat=True).distinct().order_by('email')
+    url = settings.HOST + "/details/" + str(submission.id)
+    message = 'Your new grading: \n' \
+              'Status: %s \n' \
+              'Notes: %s \n\n' \
+              'Further Information, see: %s' % (
+              dict(submission.STUDENT_STATES)[submission.state], submission.grading_notes, url)
+    email = EmailMessage(subject=subject, body=message, from_email=from_email, to=list(recipients))
+    email.send(fail_silently=False)

@@ -333,7 +333,7 @@ def console_script(fsroot=''):
     parser_configcreate.add_argument('--login_shib_description', default=os.environ.get('OPENSUBMIT_LOGIN_SHIB_DESCRIPTION', ''), help='Title of the Shibboleth login button.')
     parser_configcreate.add_argument('--login_demo', default=is_str_true(os.environ.get('OPENSUBMIT_LOGIN_DEMO', 'False')), action='store_true', help='Offer demo login options.')
     parser_configcreate.add_argument('--admin_name', default=os.environ.get('OPENSUBMIT_ADMIN_NAME', 'OpenSubmit Administrator'), help='Name of the administrator, shown in privacy policy, impress and backend.')
-    parser_configcreate.add_argument('--admin_email', default=os.environ.get('OPENSUBMIT_ADMIN_EMAIL', 'root@localhost'), help='eMail of the administrator, shown in privacy policy, impress and backend.')
+    parser_configcreate.add_argument('--admin_email', default=os.environ.get('OPENSUBMIT_ADMIN_EMAIL', 'openspace@h-da.de'), help='eMail of the administrator, shown in privacy policy, impress and backend.')
     parser_configcreate.add_argument('--admin_address', default=os.environ.get('OPENSUBMIT_ADMIN_ADDRESS', '(address available by eMail)'), help='Address of the administrator, shown in privacy policy and impress.')
     parser_configcreate.add_argument('--admin_impress_page', default=os.environ.get('OPENSUBMIT_IMPRESS_PAGE', ''), help='Link to alternative impress page.')
     parser_configcreate.add_argument('--admin_privacy_page', default=os.environ.get('OPENSUBMIT_PRIVACY_PAGE', ''), help='Link to alternative privacy policy page.')

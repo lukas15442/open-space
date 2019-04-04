@@ -186,8 +186,8 @@ class Submission(models.Model):
         (TEST_FULL_PENDING, 'Waiting for grading'),
         (TEST_FULL_FAILED, 'Waiting for grading'),
         (SUBMITTED_TESTED, 'Waiting for grading'),
-        (GRADING_IN_PROGRESS, 'Waiting for grading'),
-        (GRADED, 'Waiting for grading'),
+        (GRADING_IN_PROGRESS, 'Pending'),
+        (GRADED, 'Grading closed'),
         (CLOSED, 'Done'),
         (CLOSED_TEST_FULL_PENDING, 'Done')
     )
@@ -210,7 +210,7 @@ class Submission(models.Model):
                                     help_text="Additional information about the grading as file.")
     state = models.CharField(max_length=2, choices=STATES, default=RECEIVED)
 
-    notify_student = True
+    notify_student = False
 
     admin_save = False
 
@@ -333,10 +333,7 @@ class Submission(models.Model):
         "What is the grade?".
         '''
         if self.assignment.is_graded():
-            if self.is_grading_finished():
-                return str(self.grading)
-            else:
-                return str('pending')
+            return str(self.grading)
         else:
             if self.is_grading_finished():
                 return str('done')
@@ -431,6 +428,9 @@ class Submission(models.Model):
         Requires: can_modify.
 
         Currently, the conditions for modifications and withdrawal are the same."""
+        if self.state is self.GRADED:
+            return False
+
         return self.can_modify(user=user)
 
     def can_reupload(self, user=None):
@@ -447,6 +447,9 @@ class Submission(models.Model):
 
         # It must be allowed to modify the submission.
         if not self.can_modify(user=user):
+            return False
+
+        if self.state is self.GRADED:
             return False
 
         return True
@@ -473,7 +476,7 @@ class Submission(models.Model):
         return self.state in [self.GRADED, self.CLOSED, self.CLOSED_TEST_FULL_PENDING]
 
     def show_grading(self):
-        return self.assignment.gradingScheme != None
+        return self.assignment.gradingScheme != None and self.state in [self.GRADED, self.GRADING_IN_PROGRESS]
 
     def get_initial_state(self):
         '''

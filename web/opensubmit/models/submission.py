@@ -250,8 +250,7 @@ class Submission(models.Model):
 
             The idea is to get a list of work to be done for the correctors.
         '''
-        return qs.filter(state__in=[Submission.SUBMITTED, Submission.SUBMITTED_TESTED, Submission.TEST_FULL_FAILED,
-                                    Submission.GRADING_IN_PROGRESS])
+        return qs.filter(state__in=[Submission.SUBMITTED, Submission.SUBMITTED_TESTED, Submission.TEST_FULL_FAILED])
 
     @staticmethod
     def qs_notified(qs):

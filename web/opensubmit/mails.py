@@ -46,7 +46,7 @@ def inform_student(submission, request, state):
     not work, since this may have been triggered
     by the admin.
     '''
-    details_url = request.build_absolute_uri(reverse('details', args=(submission.pk,)))
+    details_url = ""
 
     if state == submission.TEST_VALIDITY_FAILED:
         subject = STUDENT_FAILED_SUB
@@ -86,7 +86,7 @@ def inform_tutors(submission):
     from_email = settings.ADMIN_EMAIL
     recipients = submission.assignment.course.tutors.values_list(
         'email', flat=True).distinct().order_by('email')
-    message = settings.HOST + "/teacher/opensubmit/submission/" + str(submission.id) + "/change"
+    message = settings.OPENSUBMIT_SERVER_URL + "/teacher/opensubmit/submission/" + str(submission.id) + "/change"
     email = EmailMessage(subject, message, from_email, recipients)
     email.send(fail_silently=False)
 
@@ -96,7 +96,7 @@ def inform_student_for_grading(submission):
     from_email = settings.ADMIN_EMAIL
     recipients = submission.authors.values_list(
         'email', flat=True).distinct().order_by('email')
-    url = settings.HOST + "/details/" + str(submission.id)
+    url = settings.OPENSUBMIT_SERVER_URL + "/details/" + str(submission.id)
     message = 'Your new grading: \n' \
               'Status: %s \n' \
               'Notes: %s \n\n' \

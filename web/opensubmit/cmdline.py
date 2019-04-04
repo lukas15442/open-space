@@ -36,6 +36,7 @@ DEBUG: {debug}
 DEMO: {login_demo}
 
 [server]
+OPENSUBMIT_SERVER_URL: {server_url}
 HOST: {server_host}
 HOST_DIR: {server_hostdir}
 HOST_ALIASES: {server_hostaliases}

@@ -109,6 +109,7 @@ DEMO = config.get_bool('general', 'DEMO', default=False)
 
 HOST = config.get('server', 'HOST')
 HOST_DIR = config.get('server', 'HOST_DIR')
+OPENSUBMIT_SERVER_URL = config.get('server', 'OPENSUBMIT_SERVER_URL')
 if len(HOST_DIR) > 0:
     mainurl = HOST + '/' + HOST_DIR
 else:

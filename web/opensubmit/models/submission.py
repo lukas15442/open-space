@@ -595,8 +595,8 @@ class Submission(models.Model):
         '''
         mails.inform_student(self, request, state)
 
-    def inform_tutors(self, request, state):
-        mails.inform_tutors(self, request, state)
+    def inform_tutors(self):
+        mails.inform_tutors(self)
 
     def info_file(self, delete=True):
         '''

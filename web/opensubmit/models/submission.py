@@ -593,7 +593,7 @@ class Submission(models.Model):
             We hand-in explicitely about which new state we want to inform,
             since this may not be reflected in the model at the moment.
         '''
-        mails.inform_student(self, request, state)
+        # mails.inform_student(self, request, state)
 
     def inform_tutors(self):
         mails.inform_tutors(self)

@@ -82,7 +82,8 @@ def inform_student(submission, request, state):
 
 def inform_tutors(submission):
     name = list(submission.authors.all())[0].get_full_name()
-    subject = "[%s / %s] %s" % (submission.assignment.course, submission.assignment.title, name)
+    state = dict(submission.STATES)[submission.state]
+    subject = "[%s / %s] %s - %s" % (submission.assignment.course, submission.assignment.title, name, state)
     from_email = settings.ADMIN_EMAIL
     recipients = submission.assignment.course.tutors.values_list(
         'email', flat=True).distinct().order_by('email')

@@ -441,7 +441,7 @@ class Submission(models.Model):
         Re-uploads are allowed only when test executions have failed."""
 
         # Re-uploads are allowed only when test executions have failed.
-        if self.state not in (self.TEST_VALIDITY_FAILED, self.TEST_FULL_FAILED):
+        if self.state not in (self.TEST_VALIDITY_FAILED, self.TEST_FULL_FAILED, self.GRADING_IN_PROGRESS):
             return False
 
         # It must be allowed to modify the submission.
@@ -546,7 +546,7 @@ class Submission(models.Model):
                 mails.inform_student_for_grading(self)
 
         super(Submission, self).save(force_insert, force_update, *args, **kwargs)
-        self.__original_grading_notes = self.grading_notes
+        self.__originacan_reuploadl_grading_notes = self.grading_notes
         self.__original_grading = self.grading
         self.__original_state = self.state
         self.__original_grading_file = self.grading_file

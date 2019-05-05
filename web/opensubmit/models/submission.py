@@ -440,6 +440,9 @@ class Submission(models.Model):
 
         Re-uploads are allowed only when test executions have failed."""
 
+        # To force new submission on reupload
+        return False
+
         # Re-uploads are allowed only when test executions have failed.
         if self.state not in (self.TEST_VALIDITY_FAILED, self.TEST_FULL_FAILED, self.GRADING_IN_PROGRESS):
             return False

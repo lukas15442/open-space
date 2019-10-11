@@ -20,6 +20,8 @@ RUN chmod 775 /var/run && \
 
 ADD ./start.sh /start.sh
 
+ADD ./jenkins.war /usr/lib/jenkins
+
 RUN mkdir /opensubmit && \
     chgrp 0 /opensubmit && \
     chmod g=u /opensubmit && \

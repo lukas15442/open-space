@@ -37,6 +37,7 @@ curl -k --user 'admin:admin' --data-urlencode \
 
 
 # read jenkins api token
+# you have to generate manually the token in the jenkins gui, because reasons
 export JENKINS_API_TOKEN=$(curl -k --user "api:$JENKINS_API_PASSWORD" --data-urlencode \
   "script=import jenkins.security.*; User u = User.get('api'); ApiTokenProperty t = u.getProperty(ApiTokenProperty.class); \
           def token = t.getApiToken(); println (token)" \
@@ -72,7 +73,7 @@ oc exec $JENKINS_POD_NAME -- bash -c ./jenkinsScript
 
 
 # jenkins gitlab auth
-oc cp $JENKINS_POD_NAME:/var/lib/jenkins/config.xml jenkinsConfig
+oc cp $JENKINS_POD_NAME:var/lib/jenkins/config.xml jenkinsConfig
 
 sed -i ':a;N;$!ba;s|<securityRealm.*\n.*\n.*\n.*securityRealm>|<securityRealm class="org.jenkinsci.plugins.GitLabSecurityRealm"> \
     <gitlabWebUri>https://code.fbi.h-da.de</gitlabWebUri> \
